@@ -122,8 +122,8 @@ namespace xj_dy_ns
                                         Eigen::MatrixXd& matrix_K,
                                         Eigen::MatrixXd& matrix_D)
     {
-        
-        ;
+        matrix_K = x * matrix_K.setIdentity();
+        matrix_D = 2*0.707*matrix_K.cwiseSqrt();
     }
 
 }

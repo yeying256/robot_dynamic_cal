@@ -1,3 +1,6 @@
+#ifndef FRANKA_IMPEDANCE_PARAM_H 
+#define FRANKA_IMPEDANCE_PARAM_H
+
 #include <iostream>
 #include <Eigen/Eigen>
 #include <ros/ros.h>
@@ -42,3 +45,7 @@ namespace xj_dy_ns
 
 
 }
+
+
+
+#endif
