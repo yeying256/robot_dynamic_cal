@@ -22,32 +22,34 @@ namespace xj_dy_ns
 
         DOF_=DOF;
         // Eigen::Matrix<double,DOF,7> DH_table;
-        DH_table.resize(DOF,7);
+        DH_table =  Eigen::Matrix<double,Eigen::Dynamic,7>::Zero(DOF,7);
         // Eigen::Matrix<double,DOF,7> DH_table_red;
-        DH_table_red.resize(DOF,7);
+        DH_table_red = Eigen::Matrix<double,Eigen::Dynamic,7>::Zero(DOF,7);
         // Eigen::Matrix<double,DOF,1> q_now;
-        q_now.resize(DOF);
+        q_now = Eigen::VectorXd::Zero(DOF);
         // Eigen::Matrix<double,DOF,1> gq;
-        gq.resize(DOF);
+        gq = Eigen::VectorXd::Zero(DOF);
         // Eigen::Matrix<double,DOF,1> G_;
-        G_.resize(DOF);
+        G_=Eigen::VectorXd::Zero(DOF);
         // Eigen::Matrix<double,DOF,1> dq_;//关节速度
-        dq_.resize(DOF);
+        dq_=Eigen::VectorXd::Zero(DOF);
         // Eigen::Matrix<double,DOF,1> dq_last_;//关节速度
-        dq_last_.resize(DOF);
+        dq_last_ = Eigen::VectorXd::Zero(DOF);
+        // dq_last_.resize(DOF);
         // Eigen::Matrix<double,DOF,1> ddq_;//关节加速度
-        ddq_.resize(DOF);
+        ddq_= Eigen::VectorXd::Zero(DOF);
         // Eigen::Matrix<double,DOF,1> ddq_last_;//上一次关节加速度
-        ddq_last_.resize(DOF);
+        ddq_last_= Eigen::VectorXd::Zero(DOF);
         // Eigen::Matrix<double,6,DOF> jacobi_;//雅可比矩阵
-        jacobi_.resize(6,DOF);
+        // jacobi_.resize(6,DOF);
+        jacobi_ =Eigen::Matrix<double, 6, -1>::Zero(6,DOF);
         // Eigen::Matrix<double,DOF,1> tor_CpM_neton_;
-        tor_CpM_neton_.resize(DOF);
+        tor_CpM_neton_= Eigen::VectorXd::Zero(DOF);
         // Eigen::Matrix<double,DOF,1> tor_CpM_neton_last_;
-        tor_CpM_neton_last_.resize(DOF);
+        tor_CpM_neton_last_= Eigen::VectorXd::Zero(DOF);
     //初始化矩阵大小
 
-        q_now <<0,0,0,0,0,0;
+        // q_now <<0,0,0,0,0,0;
         T_.resize(DOF);
         Pc.resize(DOF);
         m_.resize(DOF);
