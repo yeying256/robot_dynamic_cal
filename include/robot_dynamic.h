@@ -106,8 +106,10 @@ namespace xj_dy_ns
         
 
         Eigen::Matrix<double,Eigen::Dynamic,1>* get_tor_CpM_neton_last_ptr();
+        Eigen::Matrix<double,4,4> get_0Ti(int i);
 
-
+        
+        
     };
     
     

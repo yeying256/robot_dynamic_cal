@@ -143,7 +143,7 @@ namespace xj_dy_ns
         
         //下面是质心参数
         std::cout<<"下面是质心参数"<<std::endl;
-        row = 6;
+        row = DOF;
         col = 3;
         for (int i = 0; i < row; i++)
         {
@@ -694,8 +694,6 @@ namespace xj_dy_ns
         return this->dw_.at(i);
     }
 
-    
-
     /** 
      * @brief 计算惯性力+科氏力用牛顿迭代法，必须计算完速度和加速度才能进行这一个计算
      * @param i 返回哪一个坐标系的力和力矩
@@ -804,5 +802,16 @@ namespace xj_dy_ns
     {
         return &(this->tor_CpM_neton_last_);
     }
+
+    /**
+     * @brief 返回0坐标系到第i个坐标系的齐次矩阵
+     * @param i 第i个
+     * @return 返回一个4X4的矩阵
+     */
+    Eigen::Matrix<double,4,4> Robot_dynamic::get_0Ti(int i)
+    {
+        return this->_0T_i[i];
+    }
+
 
 }
