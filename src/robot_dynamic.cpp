@@ -6,7 +6,7 @@ namespace xj_dy_ns
 {
     Robot_dynamic::Robot_dynamic(/* args */)
     {
-
+        ;
     }
     Robot_dynamic::Robot_dynamic(const std::string& url,const int& DOF)
     {
@@ -15,11 +15,70 @@ namespace xj_dy_ns
     
     Robot_dynamic::~Robot_dynamic()
     {
+        ;
+    }
+
+    /**
+     * @brief 初始化参数大小
+     * @param param 西西里亚诺那本书定义的参数
+     * @param dof 自由度数
+    */
+    void Robot_dynamic::resize_param(int dof)
+    {
+        this->DOF_=dof;
+        this->a_.resize(dof);
+        this->ddq_.setZero(dof);
+        this->ddq_last_.setZero(dof);
+        m_.resize(dof);
+        Pc.resize(dof);
+        Ic_.resize(dof);
+        motor_I_.resize(dof);
+        this->dq_.setZero(dof);
+        this->dq_last_.setZero(dof);
+        this->G_.setZero(dof);
+        this->v_.resize(dof);
+        this->w_.resize(dof);
+        this->T_.resize(dof);
+    }
+
+    /**
+     * @brief 龚陈威根据西西里亚诺那本书定义的参数。
+     * @param param 西西里亚诺那本书定义的参数
+     * @param dof 自由度数
+    */
+    void Robot_dynamic::read_dynamic_type_Gong(Eigen::VectorXd param,int dof)
+    {
+        if (param.size() != dof*11+dof*2)
+        {
+            printf("\033[1;31;40m 参数数量不对\033[0m \n");
+            return;
+        }
+        //初始化一些参数的大小
+        resize_param(dof);
+        this->DOF_=dof;
+        for (int i = 0; i < dof; i++)                           //自由度数
+        {
+            this->m_[i] = param(i*11 + 0);                      //设置m
+            this->Pc[i] = param.block<3,1>(i*11+1,0)/m_[i];     //设置质心向量
+            this->Ic_[i](0,0) = param(i*11+4);
+            this->Ic_[i](1,1) = param(i*11+7);
+            this->Ic_[i](2,2) = param(i*11+9);
+
+            this->Ic_[i](0,1) = -param(i*11+5);
+            this->Ic_[i](1,0) = -param(i*11+5);
+
+            this->Ic_[i](0,2) = -param(i*11+6);
+            this->Ic_[i](2,0) = -param(i*11+6);
+
+            this->Ic_[i](1,2) = -param(i*11+8);
+            this->Ic_[i](2,1) = -param(i*11+8);
+
+            this->motor_I_[i] = param(i*11 + 10);               //设置转子惯量
+        }
     }
 
     bool Robot_dynamic::read_dynamic(const std::string& url,const int& DOF)
     {
-
         DOF_=DOF;
         // Eigen::Matrix<double,DOF,7> DH_table;
         DH_table =  Eigen::Matrix<double,Eigen::Dynamic,7>::Zero(DOF,7);

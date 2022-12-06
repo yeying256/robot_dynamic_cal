@@ -41,6 +41,7 @@ namespace xj_dy_ns
     std::vector<Eigen::Matrix<double,3,3> > Ic_;//转动惯量
     Eigen::Matrix<double,Eigen::Dynamic,1> tor_CpM_neton_;
     Eigen::Matrix<double,Eigen::Dynamic,1> tor_CpM_neton_last_;
+    std::vector<double> motor_I_; //电机转子的惯量
 
     int DOF_ = 0;
     public:
@@ -48,7 +49,7 @@ namespace xj_dy_ns
         Robot_dynamic(const std::string& url,const int& DOF);
         ~Robot_dynamic();
         bool read_dynamic(const std::string& url,const int& DOF);
-
+        void read_dynamic_type_Gong(Eigen::VectorXd param,int dof);
 
         void set_q_now(Eigen::Matrix<double,Eigen::Dynamic,1> q_now);
         Eigen::Matrix<double,4,4> Ti_cal(const int n,float theta);
@@ -107,6 +108,7 @@ namespace xj_dy_ns
 
         Eigen::Matrix<double,Eigen::Dynamic,1>* get_tor_CpM_neton_last_ptr();
         Eigen::Matrix<double,4,4> get_0Ti(int i);
+        void resize_param(int dof);
 
         
         
