@@ -4,13 +4,31 @@
 
 namespace xj_dy_ns
 {
+    /**
+     * @brief 构造函数啥也不是，需要手动重置参数大小，调用resize_param函数
+    */
     Robot_dynamic::Robot_dynamic(/* args */)
     {
         ;
     }
+
+    /**
+     * @brief 构造函数，根据dh表文件地址初始化动力学参数和运动学参数
+     * @param dof 自由度数
+    */
     Robot_dynamic::Robot_dynamic(const std::string& url,const int& DOF)
     {
         read_dynamic(url,DOF);
+        this->resize_param(DOF);
+    }
+
+    /**
+     * @brief 构造函数，仅初始化参数大小
+     * @param dof 自由度数
+    */
+    Robot_dynamic::Robot_dynamic(int dof)
+    {
+        this->resize_param(dof);
     }
     
     Robot_dynamic::~Robot_dynamic()
@@ -45,6 +63,60 @@ namespace xj_dy_ns
             jacobi_ci_[i].setZero(6,dof);
         }
         tor_CpM_neton_= Eigen::VectorXd::Zero(dof);
+        DH_table_red.setZero(dof,7);
+        DH_table.setZero(dof,7);
+        _0T_i.resize(dof);
+        M_q_.setZero(dof,dof);
+        q_now.resize(dof);
+        this->tor_CpM_neton_.resize(dof);
+        this->tor_CpM_neton_last_.resize(dof);
+
+
+        // Eigen::Matrix<double,DOF,7> DH_table;
+        DH_table =  Eigen::Matrix<double,Eigen::Dynamic,7>::Zero(dof,7);
+        // Eigen::Matrix<double,DOF,7> DH_table_red;
+        DH_table_red = Eigen::Matrix<double,Eigen::Dynamic,7>::Zero(dof,7);
+        // Eigen::Matrix<double,DOF,1> q_now;
+        q_now = Eigen::VectorXd::Zero(dof);
+        // Eigen::Matrix<double,DOF,1> gq;
+        gq = Eigen::VectorXd::Zero(dof);
+        // Eigen::Matrix<double,DOF,1> G_;
+        G_=Eigen::VectorXd::Zero(dof);
+        // Eigen::Matrix<double,DOF,1> dq_;//关节速度
+        dq_=Eigen::VectorXd::Zero(dof);
+        // Eigen::Matrix<double,DOF,1> dq_last_;//关节速度
+        dq_last_ = Eigen::VectorXd::Zero(dof);
+        // dq_last_.resize(DOF);
+        // Eigen::Matrix<double,DOF,1> ddq_;//关节加速度
+        ddq_= Eigen::VectorXd::Zero(dof);
+        // Eigen::Matrix<double,DOF,1> ddq_last_;//上一次关节加速度
+        ddq_last_= Eigen::VectorXd::Zero(dof);
+        // Eigen::Matrix<double,6,DOF> jacobi_;//雅可比矩阵
+        // jacobi_.resize(6,DOF);
+        jacobi_ =Eigen::Matrix<double, 6, -1>::Zero(6,dof);
+        // Eigen::Matrix<double,DOF,1> tor_CpM_neton_;
+        tor_CpM_neton_= Eigen::VectorXd::Zero(dof);
+        // Eigen::Matrix<double,DOF,1> tor_CpM_neton_last_;
+        tor_CpM_neton_last_= Eigen::VectorXd::Zero(dof);
+    //初始化矩阵大小
+
+        // q_now <<0,0,0,0,0,0;
+        T_.resize(dof);
+        Pc.resize(dof);
+        m_.resize(dof);
+        F_T_EE.resize(2);
+        T_tool_=Eigen::Matrix<double,4,4>::Identity();
+        this->v_.resize(dof);
+        this->dw_.resize(dof);
+        this->w_.resize(dof);
+        this->a_.resize(dof);
+        this->Ic_.resize(dof);
+
+
+        init_size_flag = true;
+
+
+
         
     }
 
@@ -61,7 +133,7 @@ namespace xj_dy_ns
             return;
         }
         //初始化一些参数的大小
-        resize_param(dof);
+        
         this->DOF_=dof;
         for (int i = 0; i < dof; i++)                           //自由度数
         {
@@ -84,6 +156,42 @@ namespace xj_dy_ns
         }
     }
 
+    void Robot_dynamic::set_DH_table(Eigen::Matrix<double,Eigen::Dynamic,7> dh_table,int dof)
+    {
+        this->DH_table = dh_table;
+        
+        for (int i = 0; i < dof; i++)
+        {
+            // DH_table_red(i,0) = DH_table(i,0)/1000.0f;//ai-1换算成m
+            // DH_table_red(i,2) = DH_table(i,2)/1000.0f;//di换算成m
+            // DH_table_red(i,1) = DH_table(i,1)*M_PI/180;//alphai-1换算成弧度
+            for (int j = 0; j < 7; j++)
+            {
+                if (j == 0 || j==2)
+                {
+                    DH_table_red(i,j) = DH_table(i,j)/1000.0f;//ai-1换算成m
+                }else if(j==4)//条件变量
+                {DH_table_red(i,j) = DH_table(i,j);
+                }
+                else
+                {//换算成弧度
+                    DH_table_red(i,j) = DH_table(i,j)*M_PI/180.0f;
+                }
+                std::cout <<DH_table_red(i,j)<<",";
+            }
+            std::cout<<std::endl;
+        }
+
+    }
+    
+
+
+    /**
+     * @brief 根据文件更新内部所有参数
+     * @param url 文件路径
+     * @param DOF 自由度数目
+     * @return 是否成功读取了文件
+    */
     bool Robot_dynamic::read_dynamic(const std::string& url,const int& DOF)
     {
         DOF_=DOF;
@@ -356,20 +464,23 @@ namespace xj_dy_ns
         }
     }
     /** 
-     * @brief 函数简要说明-更新这一个坐标系到世界坐标系下的旋转矩阵
+     * @brief 函数简要说明-更新这一个坐标系到世界坐标系下的旋转矩阵,此函数需要_0_Ti计算后才能得到
      * @param i  int型
      * @return  返回Eigen::Matrix<double,3,3>的3X3的旋转矩阵
      */
     Eigen::Matrix<double,3,3> Robot_dynamic::get_0R(int n)
     {
+        // Eigen::Matrix<double,3,3> _0Rn;
+        // _0Rn<<1,0,0,
+        //         0,1,0,
+        //         0,0,1;
+        // for (int i = 0; i <= n; i++)//从0算到n
+        // {
+        //     _0Rn = _0Rn*get_R(i);
+        // }
         Eigen::Matrix<double,3,3> _0Rn;
-        _0Rn<<1,0,0,
-                0,1,0,
-                0,0,1;
-        for (int i = 0; i <= n; i++)//从0算到n
-        {
-            _0Rn = _0Rn*get_R(i);
-        }
+        _0Rn =  _0T_i[n].topLeftCorner(3,3);
+
         return _0Rn;
     }
 
@@ -615,6 +726,40 @@ namespace xj_dy_ns
         }
     }
 
+    /** 
+     * @brief 用迭代法计算每个坐标系的线速度和角速度，并更新到对象中去，通过dq计算速度，用于忽悠牛顿和欧拉
+     * @param dq 
+     * @return 返回每个坐标系原点的速度
+     */
+    std::vector<Eigen::Matrix<double,6,1>> Robot_dynamic::vel_cal(Eigen::VectorXd dq)//通过dq计算速度，用于忽悠牛顿和欧拉
+    {
+        std::vector<Eigen::Matrix<double,6,1>> v_w_all;
+        v_w_all.resize(DOF_);
+
+
+        std::vector<Eigen::Matrix<double,3,1>> v_w_ip1;
+        v_w_ip1.resize(2);
+        for (int i = 0; i < DOF_; i++)
+        {
+            if (i==0)
+            {
+                // v_w_ip1 = vel_iter(i,Eigen::Vector3d::Zero(),Eigen::Vector3d::Zero(),this->dq_(i));
+                v_w_ip1 = vel_iter(i,Eigen::Vector3d::Zero(),Eigen::Vector3d::Zero(),dq(i));
+            }else
+            {   
+                v_w_ip1 = vel_iter(i,v_w_ip1.at(0),v_w_ip1.at(1),dq(i));
+                // v_w_ip1 = vel_iter(i,v_w_ip1.at(0),v_w_ip1.at(1),this->dq_(i));
+            }
+            // this->v_.at(i) = v_w_ip1.at(0);
+            // this->w_.at(i) = v_w_ip1.at(1);
+            v_w_all.at(i).topLeftCorner(3,1) = v_w_ip1.at(0);
+            v_w_all.at(i).bottomLeftCorner(3,1) = v_w_ip1.at(1);
+        }
+        return v_w_all;
+
+    }
+
+
     Eigen::Matrix<double,6,1> Robot_dynamic::get_vel_w_jacobe()
     {
         return this->jacobi_*this->dq_;
@@ -730,6 +875,33 @@ namespace xj_dy_ns
             this->dw_.at(ip1) = a_w_ip1.at(1);
         }
     }
+
+
+    std::vector<Eigen::VectorXd> Robot_dynamic::a_cal(Eigen::VectorXd dq,Eigen::VectorXd ddq)
+    {
+        Eigen::Matrix<double,3,1> ai=Eigen::Matrix<double,3,1>::Zero(),
+                                    dwi=Eigen::Matrix<double,3,1>::Zero(),
+                                    wi=Eigen::Matrix<double,3,1>::Zero();
+        std::vector<Eigen::Matrix<double,3,1>> a_w_ip1;//第一个是线加速度，第二个是角加速度
+        a_w_ip1.resize(2);
+        
+
+        for (int ip1 = 0; ip1 < DOF_; ip1++)
+        {
+            if (ip1==0)
+            {
+                // a_w_ip1 = a_iter(ip1,ai,dwi,wi,this->dq_[ip1],this->ddq_[ip1]);
+                a_w_ip1 = a_iter(ip1,ai,dwi,wi,dq[ip1],ddq[ip1]);
+
+            }
+            else
+            {
+                a_w_ip1 = a_iter(ip1,a_w_ip1.at(0),a_w_ip1.at(1),this->w_.at(ip1-1),this->dq_[ip1],this->ddq_[ip1]);
+            }
+            this->a_.at(ip1) = a_w_ip1.at(0);
+            this->dw_.at(ip1) = a_w_ip1.at(1);
+        }
+    }
     
     /** 
      * @brief 返回a和w
@@ -781,6 +953,24 @@ namespace xj_dy_ns
         return F_T_M_C;
     }
 
+
+    /** 
+     * @brief 计算惯性力+科氏力用牛顿迭代法，必须计算完速度和加速度才能进行这一个计算,可以直接指定一些数据进行单独计算
+     * @param i 返回哪一个坐标系的力和力矩
+     * @param q 指定的关节位置
+     * @param dq 指定的关节速度
+     * @param ddq 指定的关节加速度
+     * @return  返回 第i个坐标系下的力和力矩，vector第一个是受力，第二个是力矩，
+     */
+    std::vector<Eigen::Matrix<double,3,1>> Robot_dynamic::get_i_M_C_cal(int i,
+    Eigen::VectorXd q,
+    Eigen::VectorXd dq,
+    Eigen::VectorXd ddq)
+    {
+        this->a_cal
+    }
+
+
     /** 
      * @brief 计算第i个质心在第i个坐标系下的加速度
      * @param i 返回哪个杆件的加速度
@@ -804,7 +994,7 @@ namespace xj_dy_ns
         Eigen::Matrix<double,3,1> Ti_tmp,Fi_tmp,Tip1_tmp,Fip1_tmp;
 
         Eigen::Matrix<double,3,3> R_0_g ,R_0_g_init;            //世界坐标系到当前计算的旋转矩阵
-        std::vector<Eigen::Matrix<double,3,1>> F_T;//计算临时的迭代过来的力和力矩
+        std::vector<Eigen::Matrix<double,3,1>> F_T;             //计算临时的迭代过来的力和力矩
         F_T.resize(2);
         // R_0_g_init<<1,0,0,0,1,0,0,0,1;
         for (int i = 0; i < DOF_; i++)//循环DOF次
@@ -813,7 +1003,6 @@ namespace xj_dy_ns
             // R_0_g<<1,0,0,0,1,0,0,0,1;
             if (i==0)//最后一个坐标系下
             {
-                
                 F_T =neton_iter(DOF_-i-1,
                 Eigen::Matrix<double,3,1>::Zero(),
                 Eigen::Matrix<double,3,1>::Zero(),
@@ -885,9 +1074,9 @@ namespace xj_dy_ns
 
     /**
      * @brief 计算质心雅可比矩阵，更新内部的质心雅可比矩阵
-     * @param q 关节角度向量
+     * @remark 0.002ms就可以算一次
     */
-    void Robot_dynamic::jacobe_ci_cal(Eigen::VectorXd q)
+    void Robot_dynamic::jacobe_ci_cal()
     {
         //计算质心的位置
         std::vector<Eigen::Vector4d> pci_w;
@@ -916,6 +1105,53 @@ namespace xj_dy_ns
             }
         }
     }
+
+    /**
+     * @brief 用拉格朗日方法更新内部的惯性矩阵，并返回
+     * @return 返回惯性矩阵
+    */
+    Eigen::MatrixXd Robot_dynamic::M_q_cal_Lagrange()//用拉格朗日方法求解惯性矩阵
+    {
+        Eigen::MatrixXd M_q;//惯性矩阵
+        M_q.setZero(DOF_,DOF_);
+
+        if (!this->init_size_flag)
+        {
+            printf("\033[1;31;40 出错啦！！！您还没初始化呢！！ \033[0m \n");
+            return M_q;
+        }
+        
+        
+        Eigen::Matrix<double,3,Eigen::Dynamic> Jci_x;//雅可比矩阵前三行
+        Eigen::Matrix<double,3,Eigen::Dynamic> Jci_w;//雅可比矩阵后三行
+
+        Jci_x.setZero(3,DOF_);
+        Jci_w.setZero(3,DOF_);
+
+        for (int i = 0; i < DOF_; i++)
+        {
+            Jci_x = jacobi_ci_[i].topRows(3);//雅可比矩阵前三行
+            Jci_w = jacobi_ci_[i].bottomRows(3);//雅可比矩阵后三行
+            M_q = M_q+this->m_[i]*(Jci_x.transpose()*Jci_x) + Jci_w.transpose() * get_0R(i) * Ic_[i] *get_0R(i).transpose()*Jci_w;
+        }
+        M_q_=M_q;//将计算出来的惯性矩阵复制给成员变量
+        return M_q;
+        
+    }
+
+    /**
+     * @brief 每次必须进行的计算，将计算结果储存到对象中，减少重复计算
+    */
+    void Robot_dynamic::updata_cal()
+    {
+        T_cal();//运动学建模
+        jacobe_ci_cal();
+        jacobi_cal();
+        tor_M_C_neton_cal_();
+        M_q_cal_Lagrange();
+    }
+
+
 
 
 }//namespace xj_dy_ns 
