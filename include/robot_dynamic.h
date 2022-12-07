@@ -12,8 +12,8 @@ namespace xj_dy_ns
     private:
         /* data */
     
-    Eigen::Matrix<double,Eigen::Dynamic,7> DH_table;
-    Eigen::Matrix<double,Eigen::Dynamic,7> DH_table_red;
+    Eigen::Matrix<double,Eigen::Dynamic,7> DH_table;    //DH未换算单位的表
+    Eigen::Matrix<double,Eigen::Dynamic,7> DH_table_red;//DH表换算成可以直接计算的表
     Eigen::Matrix<double,Eigen::Dynamic,1> q_now;
     Eigen::Matrix<double,Eigen::Dynamic,1> gq;
     std::vector<Eigen::Matrix<double,4,4>> T_;
@@ -36,7 +36,7 @@ namespace xj_dy_ns
     Eigen::Matrix<double,Eigen::Dynamic,1> ddq_;//关节加速度
     Eigen::Matrix<double,Eigen::Dynamic,1> ddq_last_;//上一次关节加速度
 
-
+    std::vector<Eigen::Matrix<double,6,Eigen::Dynamic>> jacobi_ci_;
     Eigen::Matrix<double,6,Eigen::Dynamic> jacobi_;//雅可比矩阵
     std::vector<Eigen::Matrix<double,3,3> > Ic_;//转动惯量
     Eigen::Matrix<double,Eigen::Dynamic,1> tor_CpM_neton_;
@@ -109,6 +109,10 @@ namespace xj_dy_ns
         Eigen::Matrix<double,Eigen::Dynamic,1>* get_tor_CpM_neton_last_ptr();
         Eigen::Matrix<double,4,4> get_0Ti(int i);
         void resize_param(int dof);
+        void jacobe_ci_cal(Eigen::VectorXd q);
+        bool get_joint_isrevolutor(int i);//判断是否是旋转关节
+        
+
 
         
         

@@ -39,6 +39,13 @@ namespace xj_dy_ns
         this->v_.resize(dof);
         this->w_.resize(dof);
         this->T_.resize(dof);
+        this->jacobi_ci_.resize(dof);
+        for (int i = 0; i < dof; i++)
+        {
+            jacobi_ci_[i].setZero(6,dof);
+        }
+        tor_CpM_neton_= Eigen::VectorXd::Zero(dof);
+        
     }
 
     /**
@@ -173,9 +180,6 @@ namespace xj_dy_ns
             std::cout<<std::endl;//显示参数
         }
 
-
-        //
-        //
         std::cout<<"下面是m为单位和弧度为单位的DH_table"<<std::endl;
         for (int i = 0; i < row; i++)
         {
@@ -198,7 +202,6 @@ namespace xj_dy_ns
             }
             std::cout<<std::endl;
         }
-        
         
         //下面是质心参数
         std::cout<<"下面是质心参数"<<std::endl;
@@ -242,6 +245,15 @@ namespace xj_dy_ns
         }
         return true;
     }//采集参数
+
+    bool Robot_dynamic::get_joint_isrevolutor(int i)
+    {
+        if (((uint8_t)DH_table_red(i,4))==1)
+        {return true;}
+        else
+        {return false;}
+        
+    }
 
 
     /** 
@@ -300,7 +312,7 @@ namespace xj_dy_ns
 
 
     /** 
-     * @brief 函数简要说明-更新所有齐次坐标变换矩阵(MDH)
+     * @brief 函数简要说明-更新所有齐次坐标变换矩阵(MDH),以及0到n的其次坐标变换矩阵
      *        //ai-1，alphai-1，di，thetai，
             //isrevolutor，min，max
      */
@@ -310,6 +322,14 @@ namespace xj_dy_ns
         {
             //Eigen::Matrix<double,4,4> Robot_dynamic::Ti_cal(const int n,float theta)
             this->T_.at(i) = this->Ti_cal(i,this->q_now(i));
+            Eigen::Matrix<double,4,4> temp_0_Ti;
+            temp_0_Ti.setIdentity();
+            for (int j = 0; j < i; j++)
+            {
+                temp_0_Ti=temp_0_Ti*T_[j];//坐标变换矩阵
+            }
+            this->_0T_i[i] =temp_0_Ti * T_[i];//计算了从0坐标系到i坐标系的变换矩阵
+            
         // cout<<"T_ = "<< T_.at(i)<<endl;
 
         }
@@ -352,9 +372,6 @@ namespace xj_dy_ns
         }
         return _0Rn;
     }
-
-
-
 
     /** 
      * @brief 函数简要说明-使用牛顿欧拉法计算力和扭矩，在第i个坐标系下表达
@@ -407,7 +424,6 @@ namespace xj_dy_ns
         return F_T;
         
     }
-
 
     /** 
      * @brief 函数简要说明-更新对象中的重力补偿
@@ -545,7 +561,6 @@ namespace xj_dy_ns
         }
     }
 
-
     /** 
      * @brief 用迭代法计算速度
      * @param ip1 判断是返回第几个坐标系的速度，将来返回的是i+1个坐标系原点的线速度和角速度
@@ -600,7 +615,6 @@ namespace xj_dy_ns
         }
     }
 
-    
     Eigen::Matrix<double,6,1> Robot_dynamic::get_vel_w_jacobe()
     {
         return this->jacobi_*this->dq_;
@@ -731,7 +745,6 @@ namespace xj_dy_ns
         return a_dw_now;
     }
 
-
     /** 
      * @brief 返回第i个坐标系的线加速度
      * @param i 输入第几个坐标系
@@ -741,7 +754,6 @@ namespace xj_dy_ns
     {
         return this->a_.at(i);
     }
-
 
     /** 
      * @brief 返回第i的dw(角加速度)
@@ -782,7 +794,6 @@ namespace xj_dy_ns
         + this->w_.at(i).cross(this->w_[i].cross(this->Pc[i])); 
         return a_pc_i;
     }
-
 
     /** 
      * @brief 通过牛顿欧拉法迭代更新内部的科氏力+离心力
@@ -872,5 +883,39 @@ namespace xj_dy_ns
         return this->_0T_i[i];
     }
 
+    /**
+     * @brief 计算质心雅可比矩阵，更新内部的质心雅可比矩阵
+     * @param q 关节角度向量
+    */
+    void Robot_dynamic::jacobe_ci_cal(Eigen::VectorXd q)
+    {
+        //计算质心的位置
+        std::vector<Eigen::Vector4d> pci_w;
+        pci_w.resize(DOF_);
+        for (int i = 0; i < DOF_; i++)
+        {
+            pci_w[i].setZero();                 //置零
+            pci_w[i](3)=1;                      //最后一个元素变成1
+            pci_w[i].topRows(3) = this->Pc[i];  //加入前三行元素，此时为局部坐标系下的位置向量
+            pci_w[i]=this->_0T_i[i] * pci_w[i]; //计算出世界坐标系下的质心向量，注意前面3行是向量，最后一行是1
+        }
+        for (int i = 0; i < DOF_; i++)
+        {
+            for (int j = 0; j < i; j++)
+            {
+                if (this->get_joint_isrevolutor(i))//旋转关节
+                {
+                    Eigen::Vector3d Pi_j = pci_w[i].topRightCorner(3,1)-_0T_i[j].topRightCorner(3,1);
+                    jacobi_ci_[i].block<3,1>(0,j) = _0T_i[j].block<3,1>(0,2).cross(Pi_j); 
+                    jacobi_ci_[i].block<3,1>(3,j) = _0T_i[j].block<3,1>(0,2);
+                }
+                else//移动关节
+                {
+                    jacobi_ci_[i].block<3,1>(0,j) = _0T_i[j].block<3,1>(0,2);
+                }
+            }
+        }
+    }
 
-}
+
+}//namespace xj_dy_ns 
