@@ -877,14 +877,26 @@ namespace xj_dy_ns
     }
 
 
-    std::vector<Eigen::VectorXd> Robot_dynamic::a_cal(Eigen::VectorXd dq,Eigen::VectorXd ddq)
+    /**
+     * @brief 计算此条件下的的加速度和角加速度，用来忽悠牛顿和欧拉
+     * 
+     * @param dq 关节速度
+     * @param ddq 关节加速度
+     * @return std::vector<Eigen::Matrix<double,6,1>> 自由度数目的vector 每个成员前三行是线加速度，后三行是角加速度，描述的均为坐标系原点
+     */
+    std::vector<Eigen::Matrix<double,6,1>> Robot_dynamic::a_cal(Eigen::VectorXd dq,Eigen::VectorXd ddq)
     {
         Eigen::Matrix<double,3,1> ai=Eigen::Matrix<double,3,1>::Zero(),
                                     dwi=Eigen::Matrix<double,3,1>::Zero(),
                                     wi=Eigen::Matrix<double,3,1>::Zero();
         std::vector<Eigen::Matrix<double,3,1>> a_w_ip1;//第一个是线加速度，第二个是角加速度
         a_w_ip1.resize(2);
-        
+
+        std::vector<Eigen::Matrix<double,6,1>> v_w_frame;
+        v_w_frame = this->vel_cal(dq);//计算新的速度
+
+        std::vector<Eigen::Matrix<double,6,1>> a_dw_all;//要返回的坐标系原点的线加速度和角加速度
+        a_dw_all.resize(DOF_);
 
         for (int ip1 = 0; ip1 < DOF_; ip1++)
         {
@@ -896,11 +908,14 @@ namespace xj_dy_ns
             }
             else
             {
-                a_w_ip1 = a_iter(ip1,a_w_ip1.at(0),a_w_ip1.at(1),this->w_.at(ip1-1),this->dq_[ip1],this->ddq_[ip1]);
+                // a_w_ip1 = a_iter(ip1,a_w_ip1.at(0),a_w_ip1.at(1),this->w_.at(ip1-1),this->dq_[ip1],this->ddq_[ip1]);
+                a_w_ip1 = a_iter(ip1,a_w_ip1.at(0),a_w_ip1.at(1),v_w_frame.at(ip1-1).bottomLeftCorner(3,1),dq[ip1],ddq[ip1]);
+
             }
-            this->a_.at(ip1) = a_w_ip1.at(0);
-            this->dw_.at(ip1) = a_w_ip1.at(1);
+            a_dw_all.at(ip1).topLeftCorner(3,1) = a_w_ip1.at(0);
+            a_dw_all.at(ip1).bottomLeftCorner(3,1) = a_w_ip1.at(1);
         }
+        return a_dw_all;
     }
     
     /** 
@@ -957,22 +972,32 @@ namespace xj_dy_ns
     /** 
      * @brief 计算惯性力+科氏力用牛顿迭代法，必须计算完速度和加速度才能进行这一个计算,可以直接指定一些数据进行单独计算
      * @param i 返回哪一个坐标系的力和力矩
-     * @param q 指定的关节位置
-     * @param dq 指定的关节速度
-     * @param ddq 指定的关节加速度
+     * @param a_dw_Pci 第i个质心的线加速度和角加速度
+     * @param v_w_Pci 第i个质心的线速度和角速度
      * @return  返回 第i个坐标系下的力和力矩，vector第一个是受力，第二个是力矩，
      */
     std::vector<Eigen::Matrix<double,3,1>> Robot_dynamic::get_i_M_C_cal(int i,
-    Eigen::VectorXd q,
-    Eigen::VectorXd dq,
-    Eigen::VectorXd ddq)
+    Eigen::Matrix<double,6,1> a_dw_Pci,
+    Eigen::Matrix<double,6,1> v_w_Pci
+    )
     {
-        this->a_cal
+        //把分块提前赋好值 要不然会出bug
+        Eigen::Vector3d a_pci = a_dw_Pci.topRows(3);
+        Eigen::Vector3d dw_pci = a_dw_Pci.bottomRows(3);
+        Eigen::Vector3d v_pci = v_w_Pci.topRows(3);
+        Eigen::Vector3d w_pci = v_w_Pci.bottomRows(3);
+
+        std::vector<Eigen::Matrix<double,3,1>> F_T_M_C;//力和力矩，第一项是力，第二项是力矩
+        F_T_M_C.resize(2);
+        F_T_M_C.at(0) = this->m_.at(i) * a_pci;
+        F_T_M_C.at(1) = Ic_[i]*dw_pci
+        + w_pci.cross(Ic_[i] *w_pci);
+        return F_T_M_C;
     }
 
 
     /** 
-     * @brief 计算第i个质心在第i个坐标系下的加速度
+     * @brief 计算第i个质心在第i个坐标系下的加速度,通过私有参数加速度和角加速度以及角速度计算。
      * @param i 返回哪个杆件的加速度
      * @return  返回第i个质心在第i个坐标系下的加速度
      */
@@ -997,6 +1022,45 @@ namespace xj_dy_ns
         std::vector<Eigen::Matrix<double,3,1>> F_T;             //计算临时的迭代过来的力和力矩
         F_T.resize(2);
         // R_0_g_init<<1,0,0,0,1,0,0,0,1;
+        for (int i = 0; i < DOF_; i++)//循环DOF次
+        {
+            std::vector<Eigen::Matrix<double,3,1> >  F_T__M_C_i= this->get_i_M_C_cal(DOF_-i-1);
+            // R_0_g<<1,0,0,0,1,0,0,0,1;
+            if (i==0)//最后一个坐标系下
+            {
+                F_T =neton_iter(DOF_-i-1,
+                Eigen::Matrix<double,3,1>::Zero(),
+                Eigen::Matrix<double,3,1>::Zero(),
+                F_T__M_C_i.at(0),
+                F_T__M_C_i.at(1));
+            }else if(i>0 && i<DOF_)//从倒数第二个坐标系开始到第一个坐标系，
+            {
+            F_T = neton_iter(DOF_-i-1,
+            F_T.at(0),
+            F_T.at(1),
+            F_T__M_C_i.at(0),
+            F_T__M_C_i.at(1));
+            }
+            // Eigen::Matrix<double,3,1> zi(0,0,1);
+            // Eigen::Matrix<double,3,1>(0,0,1);
+            this->tor_CpM_neton_(DOF_-i-1) = F_T.at(1).transpose() * Eigen::Matrix<double,3,1>(0,0,1);
+            // cout<<Eigen::Matrix<double,3,1>(0,0,1)<<endl;
+        }
+    }
+
+
+    std::vector<Eigen::Matrix<double,6,1>> Robot_dynamic::tor_M_C_neton_cal_(Eigen::Matrix<double,6,1>dq,
+                                                                    Eigen::Matrix<double,6,1>ddq)
+    {
+        Eigen::Matrix<double,3,1> Ti_tmp,Fi_tmp,Tip1_tmp,Fip1_tmp;
+        Eigen::Matrix<double,3,3> R_0_g ,R_0_g_init;            //世界坐标系到当前计算的旋转矩阵
+        std::vector<Eigen::Matrix<double,3,1>> F_T;             //计算临时的迭代过来的力和力矩
+        F_T.resize(2);
+        // R_0_g_init<<1,0,0,0,1,0,0,0,1;
+        std::vector<Eigen::Matrix<double,6,1>> vel_frame = this->vel_cal(dq);//计算出每个坐标原点的线速度和角速度
+        
+
+
         for (int i = 0; i < DOF_; i++)//循环DOF次
         {
             std::vector<Eigen::Matrix<double,3,1> >  F_T__M_C_i= this->get_i_M_C_cal(DOF_-i-1);

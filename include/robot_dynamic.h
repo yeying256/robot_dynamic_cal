@@ -88,7 +88,7 @@ namespace xj_dy_ns
             double dtheta_ip1,
             double ddtheta_ip1);      //迭代计算加速度
         void a_cal();//计算加速度和角加速度
-        std::vector<Eigen::VectorXd> a_cal(Eigen::VectorXd dq,Eigen::VectorXd ddq);//计算通过传入参数计算质心的加速度，多用于忽悠牛顿和欧拉
+        std::vector<Eigen::Matrix<double,6,1>> a_cal(Eigen::VectorXd dq,Eigen::VectorXd ddq);//计算通过传入参数计算质心的加速度，多用于忽悠牛顿和欧拉
 
         void vel_cal();//更新计算速度
         std::vector<Eigen::Matrix<double,6,1>> vel_cal(Eigen::VectorXd dq);//通过dq计算速度，用于忽悠牛顿和欧拉
@@ -104,12 +104,14 @@ namespace xj_dy_ns
         Eigen::Matrix<double,3,1> get_a_now(int i);//获取第i个坐标系的线加速度在第i个坐标系下的表达
         Eigen::Matrix<double,3,1> get_dw_now(int i);//获取第i个坐标系的线角速度在第i个坐标系下的表达
         std::vector<Eigen::Matrix<double,3,1>> get_i_M_C_cal(int i);
-        std::vector<Eigen::Matrix<double,3,1>> get_i_M_C_cal(int i,Eigen::VectorXd q,Eigen::VectorXd dq,Eigen::VectorXd ddq);
+        std::vector<Eigen::Matrix<double,3,1>> get_i_M_C_cal(int i,Eigen::Matrix<double,6,1> a_dw_Pci,Eigen::Matrix<double,6,1> v_w_Pci);
 
 
         Eigen::Matrix<double,3,1> a_Pc_cal(int i);//计算第i根连杆的加速度，角加速度不用计算
 
         void tor_M_C_neton_cal_();
+        std::vector<Eigen::Matrix<double,6,1>> tor_M_C_neton_cal_(Eigen::Matrix<double,6,1>dq,
+                                                                    Eigen::Matrix<double,6,1>ddq);
 
         Eigen::Matrix<double,Eigen::Dynamic,1> get_tor_CpM_neton_();
         Eigen::Matrix<double,Eigen::Dynamic,1> tor_filter(Eigen::Matrix<double,Eigen::Dynamic,1> tor_,
