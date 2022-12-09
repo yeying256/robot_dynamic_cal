@@ -94,6 +94,7 @@ namespace xj_dy_ns
         std::vector<Eigen::Matrix<double,6,1>> vel_cal(Eigen::VectorXd dq);//通过dq计算速度，用于忽悠牛顿和欧拉
 
         Eigen::Matrix<double,6,1> get_vel_w_jacobe();
+        std::vector<Eigen::Matrix<double,6,Eigen::Dynamic>> get_Pc_jacobe();
         Eigen::Matrix<double,6,1> get_vel_w_iter();
 
         void set_dq_now(Eigen::Matrix<double,Eigen::Dynamic,1> dq);//设置当前关节速度
@@ -108,10 +109,12 @@ namespace xj_dy_ns
 
 
         Eigen::Matrix<double,3,1> a_Pc_cal(int i);//计算第i根连杆的加速度，角加速度不用计算
+        std::vector<Eigen::Matrix<double,3,1>> a_Pc_cal(std::vector<Eigen::Matrix<double,6,1>> vel_frame,
+                                        std::vector<Eigen::Matrix<double,6,1>> a_dw_frame);//计算全部的质心线加速度，角加速度不用计算
 
         void tor_M_C_neton_cal_();
-        std::vector<Eigen::Matrix<double,6,1>> tor_M_C_neton_cal_(Eigen::Matrix<double,6,1>dq,
-                                                                    Eigen::Matrix<double,6,1>ddq);
+        Eigen::VectorXd tor_M_C_neton_cal_(Eigen::VectorXd dq,
+                                                                    Eigen::VectorXd ddq);
 
         Eigen::Matrix<double,Eigen::Dynamic,1> get_tor_CpM_neton_();
         Eigen::Matrix<double,Eigen::Dynamic,1> tor_filter(Eigen::Matrix<double,Eigen::Dynamic,1> tor_,
@@ -127,6 +130,7 @@ namespace xj_dy_ns
         bool get_joint_isrevolutor(int i);//判断是否是旋转关节
         Eigen::MatrixXd M_q_cal_Lagrange();//用拉格朗日方法求解惯性矩阵
         void updata_cal();
+        Eigen::MatrixXd get_matrix_Mq();
 
     };
     

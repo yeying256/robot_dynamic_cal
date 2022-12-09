@@ -759,11 +759,28 @@ namespace xj_dy_ns
 
     }
 
-
+    /**
+     * @brief 获取末端雅可比矩阵计算出来的速度
+     * 
+     * @return Eigen::Matrix<double,6,1> 
+     */
     Eigen::Matrix<double,6,1> Robot_dynamic::get_vel_w_jacobe()
     {
         return this->jacobi_*this->dq_;
     }
+
+    /**
+     * @brief 返回质心的雅可比矩阵，一共有DOF_个
+     * 
+     * @return std::vector<Eigen::Matrix<double,6,Eigen::Dynamic>> 
+     */
+    std::vector<Eigen::Matrix<double,6,Eigen::Dynamic>> Robot_dynamic::get_Pc_jacobe()
+    {
+        return this->jacobi_ci_;
+    }
+
+
+
     Eigen::Matrix<double,6,1> Robot_dynamic::get_vel_w_iter()
     {
         Eigen::Matrix<double,6,1> v_w;
@@ -984,7 +1001,7 @@ namespace xj_dy_ns
         //把分块提前赋好值 要不然会出bug
         Eigen::Vector3d a_pci = a_dw_Pci.topRows(3);
         Eigen::Vector3d dw_pci = a_dw_Pci.bottomRows(3);
-        Eigen::Vector3d v_pci = v_w_Pci.topRows(3);
+        Eigen::Vector3d v_pci = v_w_Pci.topRows(3);//这里的v没有用到，所以传进来的是坐标系原点的线速度对旋转关节也没关系
         Eigen::Vector3d w_pci = v_w_Pci.bottomRows(3);
 
         std::vector<Eigen::Matrix<double,3,1>> F_T_M_C;//力和力矩，第一项是力，第二项是力矩
@@ -1008,6 +1025,39 @@ namespace xj_dy_ns
         + this->dw_.at(i).cross(this->Pc.at(i)) 
         + this->w_.at(i).cross(this->w_[i].cross(this->Pc[i])); 
         return a_pc_i;
+    }
+
+    /**
+     * @brief 通过坐标系下的速度和加速度计算，计算所有的 质心用的线加速度 
+     * 
+     * @param vel_frame DOF_个坐标系下的速度向量，第i个vector是第i个坐标系的信息，成员前三行是线速度，后三行是角速度
+     * @param a_dw_frame DOF_个坐标系下的加速度向量，第i个vector是第i个坐标系的信息，成员前三行是线加速度，后三行是角加速度
+     * @return std::vector<Eigen::Matrix<double,3,1>> 返回DOF_个连杆质心的线加速度
+     */
+    std::vector<Eigen::Matrix<double,3,1>> Robot_dynamic::a_Pc_cal(std::vector<Eigen::Matrix<double,6,1>> vel_frame,
+                                        std::vector<Eigen::Matrix<double,6,1>> a_dw_frame)
+    {
+
+        std::vector<Eigen::Matrix<double,3,1>> a_pc;
+        a_pc.resize(DOF_);
+        
+        for (int i = 0; i < DOF_; i++)
+        {
+            Eigen::Vector3d ai = a_dw_frame[i].topRows(3);      //获取第i坐标系线加速度
+            Eigen::Vector3d dwi = a_dw_frame[i].bottomRows(3);  //获取第i坐标系角加速度
+            Eigen::Vector3d wi = vel_frame[i].bottomRows(3);    //获取第i坐标系角速度
+            a_pc[i] = ai
+            + dwi.cross(this->Pc.at(i))
+            + wi.cross(wi.cross(this->Pc.at(i)));
+        }
+        return a_pc;
+
+
+        // Eigen::Matrix<double,3,1> a_pc_i;
+        // a_pc_i = this->a_.at(i) 
+        // + this->dw_.at(i).cross(this->Pc.at(i)) 
+        // + this->w_.at(i).cross(this->w_[i].cross(this->Pc[i])); 
+        // return a_pc_i;
     }
 
     /** 
@@ -1049,8 +1099,8 @@ namespace xj_dy_ns
     }
 
 
-    std::vector<Eigen::Matrix<double,6,1>> Robot_dynamic::tor_M_C_neton_cal_(Eigen::Matrix<double,6,1>dq,
-                                                                    Eigen::Matrix<double,6,1>ddq)
+    Eigen::VectorXd Robot_dynamic::tor_M_C_neton_cal_(Eigen::VectorXd dq,
+                                                                    Eigen::VectorXd ddq)
     {
         Eigen::Matrix<double,3,1> Ti_tmp,Fi_tmp,Tip1_tmp,Fip1_tmp;
         Eigen::Matrix<double,3,3> R_0_g ,R_0_g_init;            //世界坐标系到当前计算的旋转矩阵
@@ -1058,12 +1108,23 @@ namespace xj_dy_ns
         F_T.resize(2);
         // R_0_g_init<<1,0,0,0,1,0,0,0,1;
         std::vector<Eigen::Matrix<double,6,1>> vel_frame = this->vel_cal(dq);//计算出每个坐标原点的线速度和角速度
+        std::vector<Eigen::Matrix<double,6,1>> a_dw_frame = this->a_cal(dq,ddq);
+        std::vector<Eigen::Matrix<double,6,1>> a_dw_Pc = a_dw_frame;//先初始化，此时角加速度是没问题的，但是线加速度需要进行处理
+        Eigen::VectorXd tor_CpM_neton;
+        tor_CpM_neton.setZero(DOF_);
         
-
+        std::vector<Eigen::Matrix<double,3,1>> a_Pc = this->a_Pc_cal(vel_frame,a_dw_frame);
+        for (int i = 0; i < DOF_; i++)
+        {
+            a_dw_Pc[i].topRows(3) = a_Pc[i];
+        }
+        
 
         for (int i = 0; i < DOF_; i++)//循环DOF次
         {
-            std::vector<Eigen::Matrix<double,3,1> >  F_T__M_C_i= this->get_i_M_C_cal(DOF_-i-1);
+            //这里需要用的是质心速度和质心加速度
+            std::vector<Eigen::Matrix<double,3,1> >  F_T__M_C_i= this->get_i_M_C_cal(DOF_-i-1,a_dw_Pc[DOF_-i-1],vel_frame[DOF_-i-1]);
+            
             // R_0_g<<1,0,0,0,1,0,0,0,1;
             if (i==0)//最后一个坐标系下
             {
@@ -1082,9 +1143,13 @@ namespace xj_dy_ns
             }
             // Eigen::Matrix<double,3,1> zi(0,0,1);
             // Eigen::Matrix<double,3,1>(0,0,1);
-            this->tor_CpM_neton_(DOF_-i-1) = F_T.at(1).transpose() * Eigen::Matrix<double,3,1>(0,0,1);
+            // this->tor_CpM_neton_(DOF_-i-1) = F_T.at(1).transpose() * Eigen::Matrix<double,3,1>(0,0,1);
+            tor_CpM_neton(DOF_-i-1) = F_T.at(1).transpose() * Eigen::Matrix<double,3,1>(0,0,1);
+
+            
             // cout<<Eigen::Matrix<double,3,1>(0,0,1)<<endl;
         }
+        return tor_CpM_neton;
     }
 
     /** 
@@ -1154,7 +1219,7 @@ namespace xj_dy_ns
         }
         for (int i = 0; i < DOF_; i++)
         {
-            for (int j = 0; j < i; j++)
+            for (int j = 0; j <= i; j++)
             {
                 if (this->get_joint_isrevolutor(i))//旋转关节
                 {
@@ -1200,7 +1265,6 @@ namespace xj_dy_ns
         }
         M_q_=M_q;//将计算出来的惯性矩阵复制给成员变量
         return M_q;
-        
     }
 
     /**
@@ -1213,6 +1277,11 @@ namespace xj_dy_ns
         jacobi_cal();
         tor_M_C_neton_cal_();
         M_q_cal_Lagrange();
+    }
+
+    Eigen::MatrixXd Robot_dynamic::get_matrix_Mq()
+    {
+        return this->M_q_;
     }
 
 
