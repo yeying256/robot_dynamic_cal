@@ -1051,8 +1051,6 @@ namespace xj_dy_ns
             + wi.cross(wi.cross(this->Pc.at(i)));
         }
         return a_pc;
-
-
         // Eigen::Matrix<double,3,1> a_pc_i;
         // a_pc_i = this->a_.at(i) 
         // + this->dw_.at(i).cross(this->Pc.at(i)) 
@@ -1283,8 +1281,6 @@ namespace xj_dy_ns
     {
         return this->M_q_;
     }
-
-
 
 
 }//namespace xj_dy_ns 
