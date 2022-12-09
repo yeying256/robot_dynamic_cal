@@ -1337,7 +1337,4 @@ namespace xj_dy_ns
         return tor_friction;
     }
 
-
-
-
 }//namespace xj_dy_ns 
