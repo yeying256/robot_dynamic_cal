@@ -115,6 +115,10 @@ namespace xj_dy_ns
 
         init_size_flag = true;
 
+        this->f_mu_.setZero(dof);//摩擦系数
+        this->f_s_.setZero(dof);//静摩擦力
+        this->tor_friction_.setZero(dof);//摩擦力
+
 
 
         
@@ -153,6 +157,10 @@ namespace xj_dy_ns
             this->Ic_[i](2,1) = -param(i*11+8);
 
             this->motor_I_[i] = param(i*11 + 10);               //设置转子惯量
+
+            this->f_s_(i) = param(11*dof + i-1);
+            this->f_mu_(i) = param(11*dof + i-1+7);
+
         }
     }
 
@@ -1281,6 +1289,55 @@ namespace xj_dy_ns
     {
         return this->M_q_;
     }
+
+    /**
+     * @brief 设置摩擦参数到对象中
+     * 
+     * @param f_param 前dof个是静摩擦参数，后dof个是mu
+     */
+    void Robot_dynamic::set_friction_param(Eigen::VectorXd f_param)
+    {
+        this->f_s_ = f_param.topRows(DOF_);
+        this->f_mu_= f_param.bottomRows(DOF_);
+    }
+
+    /**
+     * @brief 设置摩擦参数到对象中
+     * 
+     * @param f_s 静摩擦参数
+     * @param f_mu mu
+     */
+    void Robot_dynamic::set_friction_param(Eigen::VectorXd f_s,Eigen::VectorXd f_mu)
+    {
+        this->f_s_ = f_s;
+        this->f_mu_= f_mu;
+    }
+
+    /**
+     * @brief 计算摩擦力，更新内部参数，如果想补偿，请加负号
+     * 
+     * @return Eigen::VectorXd 摩擦力正负号代表方向，不是补偿力矩！！！补偿请加负号
+     */
+    Eigen::VectorXd Robot_dynamic::friction_cal()                     
+    {
+        this->tor_friction_ = -(this->f_mu_.cwiseProduct(this->dq_) +  dq_.cwiseSign()*this->f_s_);
+        return tor_friction_;
+    }
+
+    /**
+     * @brief 通过外参计算摩擦力,，如果想补偿，请加负号
+     * 
+     * @param dq 传进去的关节角速度
+     * @return Eigen::VectorXd 摩擦力正负号代表方向，不是补偿力矩！！！补偿请加负号
+     */
+    Eigen::VectorXd Robot_dynamic::friction_cal(Eigen::VectorXd dq)  
+    {
+        Eigen::VectorXd tor_friction;
+        tor_friction = -(this->f_mu_.cwiseProduct(dq) +  dq.cwiseSign()*this->f_s_);
+        return tor_friction;
+    }
+
+
 
 
 }//namespace xj_dy_ns 

@@ -2,6 +2,7 @@
 #include <Eigen/Eigen>
 #include <fstream>
 #include <sstream>
+#include <math.h>
 
 
 
@@ -44,6 +45,9 @@ namespace xj_dy_ns
     std::vector<double> motor_I_; //电机转子的惯量
 
     Eigen::MatrixXd M_q_;
+    Eigen::VectorXd f_mu_;//摩擦系数
+    Eigen::VectorXd f_s_;//静摩擦力
+    Eigen::VectorXd tor_friction_;
 
     bool init_size_flag=false;
     int DOF_ = 0;
@@ -131,6 +135,11 @@ namespace xj_dy_ns
         Eigen::MatrixXd M_q_cal_Lagrange();//用拉格朗日方法求解惯性矩阵
         void updata_cal();
         Eigen::MatrixXd get_matrix_Mq();
+        void set_friction_param(Eigen::VectorXd f_param);
+        void set_friction_param(Eigen::VectorXd f_s,Eigen::VectorXd f_mu);
+        Eigen::VectorXd friction_cal();//内部参数计算
+        Eigen::VectorXd friction_cal(Eigen::VectorXd dq);//外部参数计算
+
 
     };
     
