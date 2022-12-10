@@ -451,6 +451,22 @@ namespace xj_dy_ns
         }
     }
 
+
+    std::vector<Eigen::Matrix4d> Robot_dynamic::T_cal(Eigen::VectorXd q)
+    {
+        std::vector<Eigen::Matrix4d> T_all;
+        T_all.resize(DOF_);
+        for (int i = 0; i < DOF_; i++)
+        {
+            T_all[i] = Ti_cal(i,q(i));
+            Eigen::Matrix<double,4,4> temp_0_Ti;
+            temp_0_Ti.setIdentity();
+        }
+        return T_all;
+        
+    }
+
+
     /** 
      * @brief 函数简要说明-更新这一个坐标系到上一个坐标系的旋转矩阵
      * @param i  int型，这一个坐标系
@@ -491,6 +507,22 @@ namespace xj_dy_ns
 
         return _0Rn;
     }
+
+
+    std::vector<Eigen::Matrix3d> Robot_dynamic::get_0R(std::vector<Eigen::Matrix4d> T_all)
+    {
+        std::vector<Eigen::Matrix3d> _0R;
+        _0R.resize(DOF_);
+        Eigen::Matrix4d T_temp;
+        T_temp.setIdentity();
+        for (int i = 0; i < DOF_; i++)
+        {
+            T_temp = T_temp*T_all[i];
+            _0R[i] = T_temp.topLeftCorner(3,3);
+        }
+        return _0R;
+    }
+
 
     /** 
      * @brief 函数简要说明-使用牛顿欧拉法计算力和扭矩，在第i个坐标系下表达
@@ -647,6 +679,46 @@ namespace xj_dy_ns
             {
                 Eigen::Matrix<double,6,1> J_line_i=Eigen::Matrix<double,6,1>::Zero();
                 J_line_i.block<3,1>(0,i) = this->get_0R(i) *zi;//方向就是z轴的方向
+                Jacobi.block<6,1>(0,i) = J_line_i;
+            }
+        }//列循环结束
+
+        this->jacobi_=Jacobi;
+    }
+
+    Eigen::Matrix<double,6,Eigen::Dynamic> Robot_dynamic::jacobe_cal(Eigen::VectorXd q)
+    {
+        
+        Eigen::Matrix<double,6,Eigen::Dynamic> Jacobi;
+        Jacobi.resize(6,DOF_);
+        Eigen::Matrix<double,3,1> zi;//因为用DH变换法，所以容易的到每个转轴都是001
+        zi<<0,0,1;
+        
+        std::vector<Eigen::Matrix4d> T_all =  this->T_cal(q);
+        std::vector<Eigen::Matrix3d> _0R_all = this->get_0R(T_all);
+        //计算前三行,前三行是计算世界坐标系下线速度的
+        //思路：只有此轴运动，其他轴不动计算此轴对末端速度的影响
+        for (int i = 0; i < DOF_; i++)//每一列循环
+        {
+            if (joint_is_rev(i))//如果是旋转关节
+            {
+            Eigen::Matrix<double,4,4> Ti_tool= Eigen::Matrix<double,4,4>::Identity();
+            for (int j = i+1; j <DOF_ ; j++)//Ti都是第i-1个坐标系变换到第i个坐标系的变换矩阵
+            {
+                Ti_tool =Ti_tool*T_all.at(j);
+            }
+            Ti_tool = Ti_tool*this->T_tool_;//乘上末端的工具坐标系变换
+            Eigen::Matrix<double,3,1> _iPi_tool= Ti_tool.topRightCorner(3,1);
+            Eigen::Matrix<double,3,1> J02_i = _0R_all[i]*zi.cross(_iPi_tool);//雅可比矩阵1到3行，第i列
+            Jacobi.block<3,1>(0,i) = J02_i;
+            //////////////////上面是雅可比矩阵前三行的计算
+            //////////////////下面是雅可比矩阵后三行的计算
+            Jacobi.block<3,1>(3,i) = _0R_all[i] *zi;
+            }//
+            else//移动关节
+            {
+                Eigen::Matrix<double,6,1> J_line_i=Eigen::Matrix<double,6,1>::Zero();
+                J_line_i.block<3,1>(0,i) = _0R_all[i] *zi;//方向就是z轴的方向
                 Jacobi.block<6,1>(0,i) = J_line_i;
             }
         }//列循环结束
@@ -1241,6 +1313,10 @@ namespace xj_dy_ns
         }
     }
 
+
+
+
+
     /**
      * @brief 用拉格朗日方法更新内部的惯性矩阵，并返回
      * @return 返回惯性矩阵
@@ -1336,5 +1412,69 @@ namespace xj_dy_ns
         tor_friction = -(this->f_mu_.cwiseProduct(dq) +  dq.cwiseSign()*this->f_s_);
         return tor_friction;
     }
+
+    /**
+     * @brief 计算可操作度
+     * 
+     * @return double 
+     */
+    double Robot_dynamic::manipulabilityIndex_position()//计算内部可操作度
+    {
+        Eigen::Matrix<double, 3, Eigen::Dynamic> position_jacobian = this->jacobi_.topRows(3);
+        Eigen::JacobiSVD<Eigen::MatrixXd> svd(position_jacobian, Eigen::ComputeFullU | Eigen::ComputeFullV);
+        Eigen::JacobiSVD<Eigen::MatrixXd>::SingularValuesType sing_vals_ = svd.singularValues();
+        this->manipulabilityIndex_position_ = sing_vals_(2)/sing_vals_(0);
+        //最小的奇异值除以最大的奇异值，manipulability_index_是条件数的倒数，可能是用最大除以最小容易产生分母为0的情况
+        return manipulabilityIndex_position_; 
+    }
+
+    /**
+     * @brief 给定参数计算可操作度
+     * 
+     * @param q 给定的关节位置
+     * @return double 
+     */
+    double Robot_dynamic::manipulabilityIndex_position(Eigen::VectorXd q)
+    {
+        Eigen::Matrix<double, 3, Eigen::Dynamic> position_jacobian = this->jacobe_cal(q).topRows(3);
+        Eigen::JacobiSVD<Eigen::MatrixXd> svd(position_jacobian, Eigen::ComputeFullU | Eigen::ComputeFullV);
+        Eigen::JacobiSVD<Eigen::MatrixXd>::SingularValuesType sing_vals_ = svd.singularValues();
+        double manipulabilityIndex_position = sing_vals_(2)/sing_vals_(0);
+        //最小的奇异值除以最大的奇异值，manipulability_index_是条件数的倒数，可能是用最大除以最小容易产生分母为0的情况
+        return manipulabilityIndex_position; 
+    }
+
+
+    Eigen::VectorXd Robot_dynamic::manipulabilityOptimization_tor_cal(const Eigen::VectorXd& q,
+                                                                     const double k_0)
+    {
+        Eigen::VectorXd manipulability_optimization_cmd;
+        manipulability_optimization_cmd.setZero(DOF_);
+        Eigen::MatrixXd partial_differentiation_selection;
+        partial_differentiation_selection.setIdentity(DOF_,DOF_);
+        double step_size_ = 0.001;
+        double manipulability_index_plus, manipulability_index_minus, manipulability_index;
+        //计算机械臂的个条件数对q的便导数
+    for(int i = 0; i < 7; i++)
+        {
+        manipulability_index_plus = this->manipulabilityIndex_position(q 
+        + step_size_*partial_differentiation_selection.col(i));
+
+        manipulability_index_minus = manipulabilityIndex_position(q 
+        - step_size_ * partial_differentiation_selection.col(i));
+
+        manipulability_optimization_cmd(i) 
+        = k_0 * (manipulability_index_plus 
+        - manipulability_index_minus) / (2*step_size_);
+
+        }
+        //条件数的范围是1到无穷大，越小越好，但是这个算出来是倒数，范围为0到1，越大越好。
+        return manipulability_optimization_cmd;
+    }
+
+
+
+
+    
 
 }//namespace xj_dy_ns 

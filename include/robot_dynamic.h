@@ -48,6 +48,7 @@ namespace xj_dy_ns
     Eigen::VectorXd f_mu_;//摩擦系数
     Eigen::VectorXd f_s_;//静摩擦力
     Eigen::VectorXd tor_friction_;
+    double manipulabilityIndex_position_;
 
     bool init_size_flag=false;
     int DOF_ = 0;
@@ -69,12 +70,14 @@ namespace xj_dy_ns
             Eigen::Matrix<double,3,1> F_i,
             Eigen::Matrix<double,3,1> T_i);//牛顿欧拉法计算这一次的力
         void T_cal();
+        std::vector<Eigen::Matrix4d> T_cal(Eigen::VectorXd q);
         Eigen::Matrix<double,3,3> get_R(int i);
         void tor_gravity_cal();//计算每个关节的重力项
         Eigen::Matrix<double,Eigen::Dynamic,1> get_G_();//获取补偿重力的关节力矩值
         double get_qi_now(int i);
         void jacobi_cal();
         Eigen::Matrix<double,3,3> get_0R(int i);
+        std::vector<Eigen::Matrix3d> get_0R(std::vector<Eigen::Matrix4d> T_all);
         void set_tool(Eigen::Matrix<double,4,4> T_tool);
         bool joint_is_rev(int i);
         std::vector<Eigen::Matrix<double,3,1>>  vel_iter(
@@ -131,6 +134,8 @@ namespace xj_dy_ns
         Eigen::Matrix<double,4,4> get_0Ti(int i);
         void resize_param(int dof);
         void jacobe_ci_cal();
+        Eigen::Matrix<double,6,Eigen::Dynamic> jacobe_cal(Eigen::VectorXd q);
+
         bool get_joint_isrevolutor(int i);//判断是否是旋转关节
         Eigen::MatrixXd M_q_cal_Lagrange();//用拉格朗日方法求解惯性矩阵
         void updata_cal();
@@ -139,6 +144,10 @@ namespace xj_dy_ns
         void set_friction_param(Eigen::VectorXd f_s,Eigen::VectorXd f_mu);
         Eigen::VectorXd friction_cal();//内部参数计算
         Eigen::VectorXd friction_cal(Eigen::VectorXd dq);//外部参数计算
+        double manipulabilityIndex_position();//计算内部可操作度
+        double manipulabilityIndex_position(Eigen::VectorXd q);//计算内部可操作度
+        Eigen::VectorXd manipulabilityOptimization_tor_cal(const Eigen::VectorXd& q, const double k_0);
+
 
 
     };
