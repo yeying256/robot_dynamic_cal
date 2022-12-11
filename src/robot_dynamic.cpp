@@ -1261,8 +1261,8 @@ namespace xj_dy_ns
     }
 
     /** 
-     * @brief 返回上一次的科氏力和离心力的补偿力矩 的指针
-     * @return 返回上一次的科氏力和离心力的补偿力矩 的指针
+     * @brief 返回上一次的科氏力和离心力惯性力的补偿力矩 的指针
+     * @return 返回上一次的科氏力和离心力惯性力的补偿力矩 的指针
      */
     Eigen::Matrix<double,Eigen::Dynamic,1>* Robot_dynamic::get_tor_CpM_neton_last_ptr()
     {
@@ -1331,8 +1331,6 @@ namespace xj_dy_ns
             printf("\033[1;31;40 出错啦！！！您还没初始化呢！！ \033[0m \n");
             return M_q;
         }
-        
-        
         Eigen::Matrix<double,3,Eigen::Dynamic> Jci_x;//雅可比矩阵前三行
         Eigen::Matrix<double,3,Eigen::Dynamic> Jci_w;//雅可比矩阵后三行
 
@@ -1343,7 +1341,8 @@ namespace xj_dy_ns
         {
             Jci_x = jacobi_ci_[i].topRows(3);//雅可比矩阵前三行
             Jci_w = jacobi_ci_[i].bottomRows(3);//雅可比矩阵后三行
-            M_q = M_q+this->m_[i]*(Jci_x.transpose()*Jci_x) + Jci_w.transpose() * get_0R(i) * Ic_[i] *get_0R(i).transpose()*Jci_w;
+            M_q = M_q+this->m_[i]*(Jci_x.transpose()*Jci_x) 
+            + Jci_w.transpose() * get_0R(i) * Ic_[i] *get_0R(i).transpose()*Jci_w;
         }
         M_q_=M_q;//将计算出来的惯性矩阵复制给成员变量
         return M_q;
