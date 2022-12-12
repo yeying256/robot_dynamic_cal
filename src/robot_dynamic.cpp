@@ -724,6 +724,7 @@ namespace xj_dy_ns
         }//列循环结束
 
         this->jacobi_=Jacobi;
+        return Jacobi;
     }
 
     /** 
