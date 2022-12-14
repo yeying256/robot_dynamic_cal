@@ -1,3 +1,14 @@
+/**
+ * @file robot_dynamic.h
+ * @author 王虓 (2569209027@qq.com)
+ * @brief 代码用来计算串联机械臂的运动学和动力学，内有雅可比矩阵计算，坐标变换，正向运动学，牛顿欧拉法迭代，拉格朗日法计算惯性力。
+ *          可操作度计算以及可操作度优化力矩
+ * @version 0.1
+ * @date 2022-12-14
+ * 
+ * @copyright Copyright (c) 2022
+ * 
+ */
 #include <ros/ros.h>
 #include <Eigen/Eigen>
 #include <fstream>
