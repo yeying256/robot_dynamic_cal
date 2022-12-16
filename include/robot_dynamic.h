@@ -1,19 +1,16 @@
 /**
  * @file robot_dynamic.h
  * @author 王虓 (2569209027@qq.com)
+ * @author 赵飞 西安交通大学机器人所指导老师
  * @brief 代码用来计算串联机械臂的运动学和动力学，内有雅可比矩阵计算，坐标变换，正向运动学，牛顿欧拉法迭代，拉格朗日法计算惯性力。
  *          可操作度计算以及可操作度优化力矩
  * @version 0.1
  * @date 2022-12-14
  * 
- * @copyright Copyright (c) 2022
+ * @copyright Copyright (c) 2022 西安交通大学机器人所 指导老师：赵飞
  * 
  */
-#include <ros/ros.h>
-#include <Eigen/Eigen>
-#include <fstream>
-#include <sstream>
-#include <math.h>
+#include "include_common.h"
 
 
 
@@ -38,7 +35,7 @@ namespace xj_dy_ns
     std::vector<Eigen::Matrix<double,4,4>> _0T_i;//世界坐标系下
     Eigen::Matrix<double,4,4> _0T_tool;//世界坐标系下的末端齐次变换矩阵
 
-    std::vector<Eigen::Matrix<double,3,1>> v_;
+    std::vector<Eigen::Matrix<double,3,1>> v_;//第i个坐标系原点的速度
     std::vector<Eigen::Matrix<double,3,1>> w_;
     std::vector<Eigen::Matrix<double,3,1>> a_;
     std::vector<Eigen::Matrix<double,3,1>> dw_;
@@ -49,7 +46,9 @@ namespace xj_dy_ns
     Eigen::Matrix<double,Eigen::Dynamic,1> ddq_last_;//上一次关节加速度
 
     std::vector<Eigen::Matrix<double,6,Eigen::Dynamic>> jacobi_ci_;
-    Eigen::Matrix<double,6,Eigen::Dynamic> jacobi_;//雅可比矩阵
+    Eigen::Matrix<double,6,Eigen::Dynamic> jacobi_;//末端雅可比矩阵
+    Eigen::Matrix<double,6,Eigen::Dynamic> d_jacobi_;//末端雅可比矩阵的导数
+    
     std::vector<Eigen::Matrix<double,3,3> > Ic_;//转动惯量
     Eigen::Matrix<double,Eigen::Dynamic,1> tor_CpM_neton_;
     Eigen::Matrix<double,Eigen::Dynamic,1> tor_CpM_neton_last_;
@@ -87,6 +86,7 @@ namespace xj_dy_ns
         Eigen::Matrix<double,Eigen::Dynamic,1> get_G_();//获取补偿重力的关节力矩值
         double get_qi_now(int i);
         void jacobi_cal();
+        void djacobe_cal();
         Eigen::Matrix<double,3,3> get_0R(int i);
         std::vector<Eigen::Matrix3d> get_0R(std::vector<Eigen::Matrix4d> T_all);
         void set_tool(Eigen::Matrix<double,4,4> T_tool);
@@ -146,6 +146,10 @@ namespace xj_dy_ns
         void resize_param(int dof);
         void jacobe_ci_cal();
         Eigen::Matrix<double,6,Eigen::Dynamic> jacobe_cal(Eigen::VectorXd q);
+
+        Eigen::Matrix<double,6,Eigen::Dynamic> get_jacobe_tool();
+        Eigen::Matrix<double,6,Eigen::Dynamic> get_djacobe_tool();
+
 
         bool get_joint_isrevolutor(int i);//判断是否是旋转关节
         Eigen::MatrixXd M_q_cal_Lagrange();//用拉格朗日方法求解惯性矩阵
