@@ -709,8 +709,11 @@ namespace xj_dy_ns
             }
             Ti_tool = Ti_tool*this->T_tool_;//乘上末端的工具坐标系变换
             Eigen::Matrix<double,3,1> _iPi_tool= Ti_tool.topRightCorner(3,1);//这个意思是i坐标系原点到tool的向量，在第i个坐标系下表示
+            Eigen::Matrix<double,3,1> temp1=this->get_vel_w_iter().topLeftCorner(3,1).eval()-v_[i];//如果不提前算出来，直接弄到表达式里会报错
+
             Eigen::Matrix<double,3,1> J02_i = this->w_[i].cross(this->get_0R(i)*zi).cross(_iPi_tool) //w叉乘用在zi在世界坐标系下的求导，先算前面再算后面
-            + (this->get_0R(i)*zi).cross(this->get_vel_w_iter().topRows(3)-v_[i]);//这个因为是都在世界坐标系下的速度相减，所以叉乘前面的也要在世界坐标系下
+            + (this->get_0R(i)*zi).cross(temp1);//这个因为是都在世界坐标系下的速度相减，所以叉乘前面的也要在世界坐标系下
+            // + (this->get_0R(i)*zi).cross(this->get_vel_w_iter().topLeftCorner(3,1).eval()-v_[i]);//这个因为是都在世界坐标系下的速度相减，所以叉乘前面的也要在世界坐标系下
             //雅可比矩阵的导数1到3行，第i列
             djacobe.block<3,1>(0,i) = J02_i;
             ////////////////////
@@ -1521,6 +1524,19 @@ namespace xj_dy_ns
     Eigen::Matrix<double,6,Eigen::Dynamic> Robot_dynamic::get_djacobe_tool()
     {
         return this->d_jacobi_;
+    }
+
+    /**
+     * @brief 计算雅可比矩阵的广义逆矩阵，这个是在权重矩阵为1的情况下搞出来的伪逆
+     * 
+     * @param jacobe 
+     * @return Eigen::Matrix<double,Eigen::Dynamic,6> 
+     */
+    Eigen::Matrix<double,Eigen::Dynamic,6> Robot_dynamic::pseudo_inverse_jacobe_cal(Eigen::Matrix<double,6,Eigen::Dynamic> jacobe)
+    {
+        Eigen::Matrix<double,Eigen::Dynamic,6>pseudo_inverse_jacobe;
+        pseudo_inverse_jacobe = jacobe.transpose()*((jacobe*jacobe.transpose()).inverse());
+        return pseudo_inverse_jacobe;
     }
 
 
