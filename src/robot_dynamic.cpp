@@ -579,6 +579,77 @@ namespace xj_dy_ns
         
     }
 
+
+    Eigen::VectorXd Robot_dynamic::tor_gravity_and_Cq_cal()//获取使用牛顿欧拉法迭代计算重力+科氏力离心力
+    {
+        Eigen::VectorXd ddq_zero=Eigen::VectorXd::Zero(DOF_);//给个0这样后面就可以单独不计算惯性力
+        
+        std::vector<Eigen::Matrix<double,6,1>> vel_frame = this->vel_cal(this->dq_);//计算出每个坐标原点的线速度和角速度
+        std::vector<Eigen::Matrix<double,6,1>> a_dw_frame = this->a_cal(this->dq_,ddq_zero);
+        std::vector<Eigen::Matrix<double,6,1>> a_dw_Pc = a_dw_frame;//先初始化，此时角加速度是没问题的，但是线加速度需要进行处理
+        std::vector<Eigen::Matrix<double,3,1>> a_Pc = this->a_Pc_cal(vel_frame,a_dw_frame);
+        for (int i = 0; i < DOF_; i++)
+        {
+            a_dw_Pc[i].topRows(3) = a_Pc[i];
+        }
+
+
+        Eigen::Matrix<double,3,1> Ti_tmp,Fi_tmp,Tip1_tmp,Fip1_tmp;
+        Eigen::Matrix<double,3,1> g_w(0,0,-9.8);    //世界坐标系下的g
+        Eigen::Matrix<double,3,3> R_0_g,R_0_g_init;            //世界坐标系到当前计算的旋转矩阵
+        std::vector<Eigen::Matrix<double,3,1>> F_T; 
+        F_T.resize(2);
+        R_0_g_init<<1,0,0,0,1,0,0,0,1;
+
+        Eigen::VectorXd tor_CpG_neton;
+        tor_CpG_neton.setZero(DOF_);
+
+
+        for (int i = 0; i < DOF_; i++)//循环DOF次
+        {
+            //这里需要用的是质心速度和质心加速度
+            std::vector<Eigen::Matrix<double,3,1> >  F_T__M_C_i= this->get_i_M_C_cal(DOF_-i-1,
+                                                                    a_dw_Pc[DOF_-i-1],
+                                                                    vel_frame[DOF_-i-1]);
+
+
+            // R_0_g<<1,0,0,0,1,0,0,0,1;
+            R_0_g = R_0_g_init;
+
+            for (int j = 0;j<(DOF_-i);j++)//计算0到坐标系的旋转矩阵
+            {
+                R_0_g = R_0_g*get_R(j);//右乘相对坐标系旋转矩阵
+            }
+             //cout<<"get_R("<<DOF-i<<") = "<<endl<<R_0_g<<endl;
+            Fi_tmp = m_.at(DOF_-i-1) * R_0_g.transpose()*g_w;//mg在第DOF-i个坐标系(本坐标系)下的表达
+            //Ti_tmp = this->Pc.at(DOF-i-1).cross(Fi_tmp);
+            Ti_tmp <<0,0,0;
+            if (i==0)//最后一个坐标系下
+            {
+                F_T =neton_iter(DOF_-i-1,
+                                this->F_T_EE.at(0),
+                                this->F_T_EE.at(1),
+                                Fi_tmp+F_T__M_C_i.at(0),
+                                Ti_tmp+F_T__M_C_i.at(1));
+
+            }else if(i>0 && i<DOF_)//从倒数第二个坐标系开始到第一个坐标系，
+            {
+            F_T = neton_iter(DOF_-i-1,
+                            F_T.at(0),
+                            F_T.at(1),
+                            Fi_tmp+F_T__M_C_i.at(0),
+                            Ti_tmp+F_T__M_C_i.at(1));
+            }
+            // Eigen::Matrix<double,3,1> zi(0,0,1);
+            // Eigen::Matrix<double,3,1>(0,0,1);
+            tor_CpG_neton(DOF_-i-1) = F_T.at(1).transpose() * Eigen::Matrix<double,3,1>(0,0,1);
+            // cout<<Eigen::Matrix<double,3,1>(0,0,1)<<endl;
+        }
+        this->tor_CpG_neton_=tor_CpG_neton;
+        return tor_CpG_neton;
+    }
+
+
     /** 
      * @brief 函数简要说明-更新对象中的重力补偿
      * 没有输入参数和返回值
@@ -1184,7 +1255,7 @@ namespace xj_dy_ns
     }
 
     /** 
-     * @brief 通过牛顿欧拉法迭代更新内部的科氏力+离心力
+     * @brief 通过牛顿欧拉法迭代更新内部的 惯性力+科氏力离心力
      * @return  更新内部资源，无返回值
      */
     void Robot_dynamic::tor_M_C_neton_cal_()
@@ -1221,7 +1292,13 @@ namespace xj_dy_ns
         }
     }
 
-
+    /**
+     * @brief 通过给定关节角速度和关节角加速度，来进行牛顿欧拉迭代的计算，用来忽悠牛顿欧拉
+     * 
+     * @param dq 
+     * @param ddq 
+     * @return Eigen::VectorXd 
+     */
     Eigen::VectorXd Robot_dynamic::tor_M_C_neton_cal_(Eigen::VectorXd dq,
                                                                     Eigen::VectorXd ddq)
     {
@@ -1246,7 +1323,9 @@ namespace xj_dy_ns
         for (int i = 0; i < DOF_; i++)//循环DOF次
         {
             //这里需要用的是质心速度和质心加速度
-            std::vector<Eigen::Matrix<double,3,1> >  F_T__M_C_i= this->get_i_M_C_cal(DOF_-i-1,a_dw_Pc[DOF_-i-1],vel_frame[DOF_-i-1]);
+            std::vector<Eigen::Matrix<double,3,1> >  F_T__M_C_i= this->get_i_M_C_cal(DOF_-i-1,
+                                                                    a_dw_Pc[DOF_-i-1],
+                                                                    vel_frame[DOF_-i-1]);
             
             // R_0_g<<1,0,0,0,1,0,0,0,1;
             if (i==0)//最后一个坐标系下
@@ -1276,8 +1355,8 @@ namespace xj_dy_ns
     }
 
     /** 
-     * @brief 返回对象中的用牛顿欧拉法计算出来的科氏力和离心力的和
-     * @return 返回对象中的用牛顿欧拉法计算出来的科氏力和离心力的和
+     * @brief 返回对象中的用牛顿欧拉法计算出来的科氏力离心力和惯性力的和
+     * @return 返回对象中的用牛顿欧拉法计算出来的科氏力离心力和惯性力的和
      */
     Eigen::Matrix<double,Eigen::Dynamic,1> Robot_dynamic::get_tor_CpM_neton_()
     {
@@ -1403,8 +1482,24 @@ namespace xj_dy_ns
         jacobi_cal();
         tor_M_C_neton_cal_();
         M_q_cal_Lagrange();
+        this->djacobe_cal();//更新内部雅可比矩阵
+
+
+        this->set_last_dq();//保存下上一次的关节角速度
+    }
+    void Robot_dynamic::updata_cal(Eigen::VectorXd q,
+                        Eigen::VectorXd dq)//更新内部参数
+    {
+        set_q_now(q);
+        set_dq_now(dq);
+        updata_cal();
     }
 
+    /**
+     * @brief 获取关节空间下的惯性矩阵
+     * 
+     * @return Eigen::MatrixXd 
+     */
     Eigen::MatrixXd Robot_dynamic::get_matrix_Mq()
     {
         return this->M_q_;
@@ -1527,7 +1622,7 @@ namespace xj_dy_ns
     }
 
     /**
-     * @brief 计算雅可比矩阵的广义逆矩阵，这个是在权重矩阵为1的情况下搞出来的伪逆
+     * @brief 计算雅可比矩阵的广义逆矩阵，这个是在权重矩阵为1的情况下搞出来的伪逆，这个可以使用静态成员函数，不用生成对象即可调用
      * 
      * @param jacobe 
      * @return Eigen::Matrix<double,Eigen::Dynamic,6> 

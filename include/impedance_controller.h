@@ -27,7 +27,9 @@ namespace xj_dy_ns
 
         bool init_param(int dof);
         void set_Mq(Eigen::MatrixXd Mq);
-        Eigen::VectorXd tau_impedance_cal(Eigen::Matrix<double,6,6> Lanmbda_d,
+
+        //静态成员函数可以不用生成对象就调用
+        static Eigen::VectorXd tau_impedance_cal(Eigen::Matrix<double,6,6> Lanmbda_d,
                                         Eigen::Matrix<double,6,6> D_d,
                                         Eigen::Matrix<double,6,6> K_d,
                                         Eigen::Matrix<double,Eigen::Dynamic,6> inv_jacobe,

@@ -58,6 +58,7 @@ namespace xj_dy_ns
     Eigen::VectorXd f_mu_;//摩擦系数
     Eigen::VectorXd f_s_;//静摩擦力
     Eigen::VectorXd tor_friction_;
+    Eigen::VectorXd tor_CpG_neton_;//科氏力离心力和重力矩方向
     double manipulabilityIndex_position_;
 
     bool init_size_flag=false;
@@ -83,7 +84,8 @@ namespace xj_dy_ns
         std::vector<Eigen::Matrix4d> T_cal(Eigen::VectorXd q);
         Eigen::Matrix<double,3,3> get_R(int i);
         void tor_gravity_cal();//计算每个关节的重力项
-        Eigen::Matrix<double,Eigen::Dynamic,1> get_G_();//获取补偿重力的关节力矩值
+        Eigen::Matrix<double,Eigen::Dynamic,1> get_G_();//获取重力的关节力矩值
+        Eigen::VectorXd tor_gravity_and_Cq_cal();//获取使用牛顿欧拉法迭代计算重力+科氏力离心力
         double get_qi_now(int i);
         void jacobi_cal();
         void djacobe_cal();
@@ -132,7 +134,7 @@ namespace xj_dy_ns
 
         void tor_M_C_neton_cal_();
         Eigen::VectorXd tor_M_C_neton_cal_(Eigen::VectorXd dq,
-                                                                    Eigen::VectorXd ddq);
+                                            Eigen::VectorXd ddq);//通过给定参数计算牛顿欧拉法，用来忽悠牛顿欧拉
 
         Eigen::Matrix<double,Eigen::Dynamic,1> get_tor_CpM_neton_();
         Eigen::Matrix<double,Eigen::Dynamic,1> tor_filter(Eigen::Matrix<double,Eigen::Dynamic,1> tor_,
@@ -153,7 +155,13 @@ namespace xj_dy_ns
 
         bool get_joint_isrevolutor(int i);//判断是否是旋转关节
         Eigen::MatrixXd M_q_cal_Lagrange();//用拉格朗日方法求解惯性矩阵
-        void updata_cal();
+        void updata_cal();//更新内部参数
+        void updata_cal(Eigen::VectorXd q,
+                        Eigen::VectorXd dq);//更新内部参数
+        
+
+
+        
         Eigen::MatrixXd get_matrix_Mq();
         void set_friction_param(Eigen::VectorXd f_param);
         void set_friction_param(Eigen::VectorXd f_s,Eigen::VectorXd f_mu);
@@ -162,7 +170,7 @@ namespace xj_dy_ns
         double manipulabilityIndex_position();//计算内部可操作度
         double manipulabilityIndex_position(Eigen::VectorXd q);//计算内部可操作度
         Eigen::VectorXd manipulabilityOptimization_tor_cal(const Eigen::VectorXd& q, const double k_0);
-        Eigen::Matrix<double,Eigen::Dynamic,6> pseudo_inverse_jacobe_cal(Eigen::Matrix<double,6,Eigen::Dynamic> jacobe);
+        static Eigen::Matrix<double,Eigen::Dynamic,6> pseudo_inverse_jacobe_cal(Eigen::Matrix<double,6,Eigen::Dynamic> jacobe);
 
 
 

@@ -24,11 +24,12 @@ namespace xj_dy_ns
     bool ImpedanceController::init_param(int dof)
     {
         this->DOF_ = dof;
+        return true;
     }
 
-    
+
     /**
-     * @brief 通过完全输入参数来计算机器人的阻抗控制的输出
+     * @brief 通过完全输入参数来计算机器人的阻抗控制的输出，这是一个静态成员函数，可以直接调用不用生成对象
      * 
      * @param Lanmbda_d 期望笛卡尔空间下的惯量
      * @param D_d 笛卡尔空间下的期望阻尼
