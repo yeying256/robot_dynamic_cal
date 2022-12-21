@@ -1,5 +1,6 @@
 
 #include "impedance_controller.h"
+/// @brief 
 namespace xj_dy_ns
 {
 
@@ -24,6 +25,8 @@ namespace xj_dy_ns
     {
         this->DOF_ = dof;
     }
+
+    
     /**
      * @brief 通过完全输入参数来计算机器人的阻抗控制的输出
      * 
@@ -39,10 +42,11 @@ namespace xj_dy_ns
      * @param ddx_d 笛卡尔空间下的期望加速度
      * @param x 笛卡尔空间下的工具坐标系当前位置
      * @param dx 笛卡尔空间下工具坐标系当前速度
+     * @param dq 关节速度
      * @param F_ext 笛卡尔空间下工具坐标系当前所受外力，方向为受力方向，不是六维力传感器直接读出来的数据，这两个差一个负号
-     * @param tor_C 关节空间下的科氏力离心力补偿力矩，不是真实方向！！！
-     * @param tor_g 关节空间下的重力矩的补偿力矩，不是真实方向！！！
-     * @return Eigen::VectorXd 
+     * @param tor_C 关节空间下的科氏力离心力补偿力矩，不是真实方向！！！也就是惯性力的反方向，或者说是与加速度方向一致
+     * @param tor_g 关节空间下的重力矩的补偿力矩，不是真实方向！！！这个是重力的反方向。
+     * @return Eigen::VectorXd tau_imp_cmd计算出补偿力矩的大小
      */
     Eigen::VectorXd ImpedanceController::tau_impedance_cal(Eigen::Matrix<double,6,6> Lanmbda_d,
                                 Eigen::Matrix<double,6,6> D_d,
@@ -56,12 +60,24 @@ namespace xj_dy_ns
                                 Eigen::Matrix<double,6,1> ddx_d,
                                 Eigen::Matrix<double,6,1> x,
                                 Eigen::Matrix<double,6,1> dx,
+                                Eigen::VectorXd dq,
                                 Eigen::Matrix<double,6,1> F_ext,
                                 Eigen::VectorXd tor_C,
                                 Eigen::VectorXd tor_g
                                 )
     {
+        Eigen::VectorXd tau_imp_cmd;
+        tau_imp_cmd.setZero(tor_C.rows());//初始化补偿力矩的大小
+        Eigen::MatrixXd k1 = M_q*inv_jacobe;
+        Eigen::MatrixXd k2 = k1*Lanmbda_d.inverse();
 
+        tau_imp_cmd = k1*(ddx_d-d_jacobe*dq) 
+        + tor_C 
+        + tor_g 
+        + k2*(D_d*(dx_d-dx) 
+        + K_d*(x_d-x))
+        + (k2 - jacobe.transpose())*F_ext;
+        return tau_imp_cmd;
     }
 
 

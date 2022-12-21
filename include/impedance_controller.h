@@ -39,6 +39,7 @@ namespace xj_dy_ns
                                         Eigen::Matrix<double,6,1> ddx_d,
                                         Eigen::Matrix<double,6,1> x,
                                         Eigen::Matrix<double,6,1> dx,
+                                        Eigen::VectorXd dq,
                                         Eigen::Matrix<double,6,1> F_ext,
                                         Eigen::VectorXd tor_C,
                                         Eigen::VectorXd tor_g
