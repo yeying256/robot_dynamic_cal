@@ -111,6 +111,19 @@ namespace xj_dy_ns
         matrix_damping = 2*0.707*matrix_K.cwiseSqrt();
     }
 
+    void franka_impedance_param::set_cartation_impedance_(const double& Kx,
+                                        const double& Kr,
+                                        Eigen::Matrix<double,6,6>& matrix_K,
+                                        Eigen::Matrix<double,6,6>& matrix_damping,
+                                        const Eigen::Matrix<double,6,6>&  Lambda_d)//根据刚度设置阻尼
+    {
+        matrix_K.setIdentity();
+        matrix_K.topLeftCorner(3,3) = Eigen::Matrix3d::Identity()*Kx;
+        matrix_K.bottomRightCorner(3,3) = Eigen::Matrix3d::Identity()*Kr;
+        matrix_damping.setIdentity();
+        matrix_damping = 2*0.707*(matrix_K*Lambda_d).cwiseSqrt();
+    }
+
     /**
      * @brief joint刚度
      * 

@@ -32,6 +32,11 @@ namespace xj_dy_ns
                                         const double& Kr,
                                         Eigen::Matrix<double,6,6>& matrix_K,
                                         Eigen::Matrix<double,6,6>& matrix_damping);//根据刚度设置阻尼
+        static void set_cartation_impedance_(const double& Kx,
+                                        const double& Kr,
+                                        Eigen::Matrix<double,6,6>& matrix_K,
+                                        Eigen::Matrix<double,6,6>& matrix_damping,
+                                        const Eigen::Matrix<double,6,6>&  Lambda_d);//根据刚度设置阻尼
 
         static void set_cartation_param6X6_(const double& x,
                                         Eigen::Matrix<double,6,6>& matrix_6X6);

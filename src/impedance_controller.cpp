@@ -38,10 +38,9 @@ namespace xj_dy_ns
      * @param M_q 在关节空间下描述的机器人本体惯量
      * @param jacobe 末端在世界坐标系下的雅可比矩阵
      * @param d_jacobe 雅可比矩阵的微分
-     * @param x_d 笛卡尔空间下的期望位置
+     * @param x_err 笛卡尔空间下的误差
      * @param dx_d 笛卡尔空间下的期望速度
      * @param ddx_d 笛卡尔空间下的期望加速度
-     * @param x 笛卡尔空间下的工具坐标系当前位置
      * @param dx 笛卡尔空间下工具坐标系当前速度
      * @param dq 关节速度
      * @param F_ext 笛卡尔空间下工具坐标系当前所受外力，方向为受力方向，不是六维力传感器直接读出来的数据，这两个差一个负号
@@ -56,10 +55,9 @@ namespace xj_dy_ns
                                 Eigen::MatrixXd M_q,
                                 Eigen::Matrix<double,6,Eigen::Dynamic> jacobe,
                                 Eigen::Matrix<double,6,Eigen::Dynamic> d_jacobe,
-                                Eigen::Matrix<double,6,1> x_d,
+                                Eigen::Matrix<double,6,1> x_err,
                                 Eigen::Matrix<double,6,1> dx_d,
                                 Eigen::Matrix<double,6,1> ddx_d,
-                                Eigen::Matrix<double,6,1> x,
                                 Eigen::Matrix<double,6,1> dx,
                                 Eigen::VectorXd dq,
                                 Eigen::Matrix<double,6,1> F_ext,
@@ -76,10 +74,28 @@ namespace xj_dy_ns
         + tor_C 
         + tor_g 
         + k2*(D_d*(dx_d-dx) 
-        + K_d*(x_d-x))
+        + K_d*(x_err))
         + (k2 - jacobe.transpose())*F_ext;
         return tau_imp_cmd;
     }
+
+
+    Eigen::Matrix<double,6,1> ImpedanceController::x_err_cal(Eigen::Matrix4d T_d,Eigen::Matrix4d T_now)
+    {
+        Eigen::Matrix3d R_err = T_d.topLeftCorner(3,3)*((T_now.topLeftCorner(3,3)).transpose());
+        double xita = acos((R_err.trace()-1)/2);//计算角度
+        Eigen::Vector3d n = Eigen::Vector3d::Zero();
+        n(0)=R_err(2,1)-R_err(1,2);
+        n(1)=R_err(0,2)-R_err(2,0);
+        n(2)=R_err(1,0)-R_err(0,1);
+
+        n = n/(2*sin(xita));
+        Eigen::Matrix<double,6,1> err;
+        err.bottomRows(3) = n*xita;
+        err.topRows(3) = T_d.topRightCorner(3,1) - T_now.topRightCorner(3,1);
+        return err;
+    }
+
 
 
 

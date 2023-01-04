@@ -50,6 +50,7 @@ namespace xj_dy_ns
     Eigen::Matrix<double,6,Eigen::Dynamic> d_jacobi_;//末端雅可比矩阵的导数
     
     std::vector<Eigen::Matrix<double,3,3> > Ic_;//转动惯量
+
     Eigen::Matrix<double,Eigen::Dynamic,1> tor_CpM_neton_;
     Eigen::Matrix<double,Eigen::Dynamic,1> tor_CpM_neton_last_;
     std::vector<double> motor_I_; //电机转子的惯量
@@ -60,6 +61,9 @@ namespace xj_dy_ns
     Eigen::VectorXd tor_friction_;
     Eigen::VectorXd tor_CpG_neton_;//科氏力离心力和重力矩方向
     double manipulabilityIndex_position_;
+    Eigen::Matrix<double,Eigen::Dynamic,6> jacobe_pse_inv_;
+    Eigen::Matrix<double,6,6> Lambda_now_;
+
 
     bool init_size_flag=false;
     int DOF_ = 0;
@@ -136,7 +140,9 @@ namespace xj_dy_ns
         Eigen::VectorXd tor_M_C_neton_cal_(Eigen::VectorXd dq,
                                             Eigen::VectorXd ddq);//通过给定参数计算牛顿欧拉法，用来忽悠牛顿欧拉
 
-        Eigen::Matrix<double,Eigen::Dynamic,1> get_tor_CpM_neton_();
+        Eigen::VectorXd get_tor_CpM_neton_();//获取惯性力和离心力
+        Eigen::VectorXd get_tor_CpG_neton_();//获取
+
         Eigen::Matrix<double,Eigen::Dynamic,1> tor_filter(Eigen::Matrix<double,Eigen::Dynamic,1> tor_,
         double hz,
         double period,
@@ -171,6 +177,13 @@ namespace xj_dy_ns
         double manipulabilityIndex_position(Eigen::VectorXd q);//计算内部可操作度
         Eigen::VectorXd manipulabilityOptimization_tor_cal(const Eigen::VectorXd& q, const double k_0);
         static Eigen::Matrix<double,Eigen::Dynamic,6> pseudo_inverse_jacobe_cal(Eigen::Matrix<double,6,Eigen::Dynamic> jacobe);
+
+        static Eigen::Matrix<double,6,6> Lambda_now_cal(Eigen::MatrixXd Mq,Eigen::Matrix<double,Eigen::Dynamic,6> j_pse_inv);
+        Eigen::Matrix<double,6,6> get_Lambda_now();
+        Eigen::Matrix<double,6,6> Lambda_now_cal();
+        Eigen::Matrix<double,Eigen::Dynamic,6> get_pseudo_inverse_jacobe();
+        Eigen::Matrix4d get_T_0tool();//获得末端坐标系到世界坐标系的位姿变换矩阵
+        
 
 
 

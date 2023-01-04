@@ -98,10 +98,11 @@ namespace xj_dy_ns
         tor_CpM_neton_= Eigen::VectorXd::Zero(dof);
         // Eigen::Matrix<double,DOF,1> tor_CpM_neton_last_;
         tor_CpM_neton_last_= Eigen::VectorXd::Zero(dof);
-    //初始化矩阵大小
+        jacobe_pse_inv_ = Eigen::MatrixXd::Zero(dof,6);
+        //初始化矩阵大小
 
-    //初始化雅可比矩阵的导数的大小
-    this->d_jacobi_.setZero(6,dof);
+        //初始化雅可比矩阵的导数的大小
+        this->d_jacobi_.setZero(6,dof);
 
         // q_now <<0,0,0,0,0,0;
         T_.resize(dof);
@@ -1358,10 +1359,21 @@ namespace xj_dy_ns
      * @brief 返回对象中的用牛顿欧拉法计算出来的科氏力离心力和惯性力的和
      * @return 返回对象中的用牛顿欧拉法计算出来的科氏力离心力和惯性力的和
      */
-    Eigen::Matrix<double,Eigen::Dynamic,1> Robot_dynamic::get_tor_CpM_neton_()
+    Eigen::VectorXd Robot_dynamic::get_tor_CpM_neton_()
     {
         return this->tor_CpM_neton_;
     }
+
+    /**
+     * @brief 获取牛顿欧拉法计算的科氏力离心力和重力矩
+     * 
+     * @return Eigen::Matrix<double,Eigen::Dynamic,1> 
+     */
+    Eigen::VectorXd Robot_dynamic::get_tor_CpG_neton_()
+    {
+        return this->tor_CpG_neton_;
+    }
+
 
     /** 
      * @brief 返回滤波后的力矩向量
@@ -1480,13 +1492,26 @@ namespace xj_dy_ns
         T_cal();//运动学建模
         jacobe_ci_cal();
         jacobi_cal();
-        tor_M_C_neton_cal_();
+        // tor_M_C_neton_cal_();
         M_q_cal_Lagrange();
-        this->djacobe_cal();//更新内部雅可比矩阵
+        this->tor_gravity_and_Cq_cal();//更新重力加科氏力和离心力
+        this->djacobe_cal();//更新内部雅可比矩阵的导数
 
 
         this->set_last_dq();//保存下上一次的关节角速度
+        jacobe_pse_inv_ = this->pseudo_inverse_jacobe_cal(this->jacobi_);
+
+        this->Lambda_now_cal();
+
     }
+
+
+    /**
+     * @brief 根据给定的参数更新内部的数据，多用来调试程序
+     * 
+     * @param q 关节位置
+     * @param dq 关节角速度
+     */
     void Robot_dynamic::updata_cal(Eigen::VectorXd q,
                         Eigen::VectorXd dq)//更新内部参数
     {
@@ -1605,8 +1630,8 @@ namespace xj_dy_ns
         manipulability_optimization_cmd(i) 
         = k_0 * (manipulability_index_plus 
         - manipulability_index_minus) / (2*step_size_);
-
         }
+
         //条件数的范围是1到无穷大，越小越好，但是这个算出来是倒数，范围为0到1，越大越好。
         return manipulability_optimization_cmd;
     }
@@ -1633,6 +1658,58 @@ namespace xj_dy_ns
         pseudo_inverse_jacobe = jacobe.transpose()*((jacobe*jacobe.transpose()).inverse());
         return pseudo_inverse_jacobe;
     }
+
+    /**
+     * @brief 通过雅可比的逆和关节空间下的惯性矩阵Mq来计算Lambda 笛卡尔坐标系下的惯性矩真
+     * 
+     * @param Mq 
+     * @param j_pse_inv 
+     * @return Eigen::Matrix<double,6,6> 
+     */
+    Eigen::Matrix<double,6,6> Robot_dynamic::Lambda_now_cal(Eigen::MatrixXd Mq,Eigen::Matrix<double,Eigen::Dynamic,6> j_pse_inv)
+    {
+        return (j_pse_inv.transpose() * Mq * j_pse_inv);
+    }
+
+    /**
+     * @brief 通过自身内部参数来计算笛卡尔坐标系下的惯性矩阵
+     * 
+     * @return Eigen::Matrix<double,6,6> 
+     */
+    Eigen::Matrix<double,6,6> Robot_dynamic::Lambda_now_cal()
+    {
+        Lambda_now_ = Lambda_now_cal(M_q_,jacobe_pse_inv_);
+        return Lambda_now_;
+    }
+
+    /**
+     * @brief 返回当前笛卡尔坐标系下的惯性矩阵Lambda
+     * 
+     * @return Eigen::Matrix<double,6,6> 
+     */
+    Eigen::Matrix<double,6,6> Robot_dynamic::get_Lambda_now()
+    {
+        return this->Lambda_now_;
+    }
+
+
+    Eigen::Matrix<double,Eigen::Dynamic,6> Robot_dynamic::get_pseudo_inverse_jacobe()
+    {
+        return this->jacobe_pse_inv_;
+    }
+
+    /**
+     * @brief 返回0坐标系到末端坐标系的位姿变换矩阵
+     * 
+     * @return Eigen::Matrix4d 
+     */
+    Eigen::Matrix4d Robot_dynamic::get_T_0tool()//获得末端坐标系到世界坐标系的位姿变换矩阵
+    {
+        return this->_0T_tool;
+    }
+
+
+
 
 
 
