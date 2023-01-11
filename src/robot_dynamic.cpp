@@ -66,6 +66,7 @@ namespace xj_dy_ns
         DH_table_red.setZero(dof,7);
         DH_table.setZero(dof,7);
         _0T_i.resize(dof);
+        
         M_q_.setZero(dof,dof);
         q_now.resize(dof);
         this->tor_CpM_neton_.resize(dof);
@@ -449,7 +450,7 @@ namespace xj_dy_ns
                 temp_0_Ti=temp_0_Ti*T_[j];//坐标变换矩阵
             }
             this->_0T_i[i] =temp_0_Ti * T_[i];//计算了从0坐标系到i坐标系的变换矩阵
-            
+            this->_0T_tool = _0T_i[DOF_-1]*this->T_tool_;//计算了从0到末端执行器的变换矩阵
         // cout<<"T_ = "<< T_.at(i)<<endl;
 
         }
@@ -719,6 +720,17 @@ namespace xj_dy_ns
     {
         return this->q_now(i);
     }
+
+    /**
+     * @brief 返回关节位置
+     * 
+     * @return Eigen::VectorXd 关节位置向量 
+     */
+    Eigen::VectorXd Robot_dynamic::get_q_now()
+    {
+        return this->q_now;
+    }
+
 
     /** 
      * @brief 通过几何法计算雅可比矩阵
@@ -1502,7 +1514,6 @@ namespace xj_dy_ns
         jacobe_pse_inv_ = this->pseudo_inverse_jacobe_cal(this->jacobi_);
 
         this->Lambda_now_cal();
-
     }
 
 
@@ -1608,7 +1619,13 @@ namespace xj_dy_ns
         return manipulabilityIndex_position; 
     }
 
-
+    /**
+     * @brief 计算可操作度的优化力矩
+     * 
+     * @param q 当前的关节位置
+     * @param k_0 优化力矩的刚度
+     * @return Eigen::VectorXd 返回的是DOF维度的优化力矩结果
+     */
     Eigen::VectorXd Robot_dynamic::manipulabilityOptimization_tor_cal(const Eigen::VectorXd& q,
                                                                      const double k_0)
     {
@@ -1636,11 +1653,21 @@ namespace xj_dy_ns
         return manipulability_optimization_cmd;
     }
 
-
+    /**
+     * @brief 返回到末端坐标系的雅可比
+     * 
+     * @return Eigen::Matrix<double,6,Eigen::Dynamic> 
+     */
     Eigen::Matrix<double,6,Eigen::Dynamic> Robot_dynamic::get_jacobe_tool()
     {
         return this->jacobi_;
     }
+
+    /**
+     * @brief 返回到末端坐标系的雅可比的导数
+     * 
+     * @return Eigen::Matrix<double,6,Eigen::Dynamic> 
+     */
     Eigen::Matrix<double,6,Eigen::Dynamic> Robot_dynamic::get_djacobe_tool()
     {
         return this->d_jacobi_;
@@ -1655,7 +1682,23 @@ namespace xj_dy_ns
     Eigen::Matrix<double,Eigen::Dynamic,6> Robot_dynamic::pseudo_inverse_jacobe_cal(Eigen::Matrix<double,6,Eigen::Dynamic> jacobe)
     {
         Eigen::Matrix<double,Eigen::Dynamic,6>pseudo_inverse_jacobe;
+        
+        Eigen::Matrix<double,Eigen::Dynamic,6> At = jacobe.transpose();
+        
+        Eigen::Matrix<double,6,6> AAt = jacobe*At;
+        Eigen::Matrix<double,6,6> AAt_inv = AAt.inverse();
+
+        Eigen::Matrix<double,Eigen::Dynamic,6> A_inv = At*AAt_inv;
+
         pseudo_inverse_jacobe = jacobe.transpose()*((jacobe*jacobe.transpose()).inverse());
+        printf("\033[1;34;40m cmd_tor = \n");//蓝色
+        std::cout<<"jacobe ="<<jacobe<<std::endl;
+        // std::cout<<"At ="<<At<<std::endl;
+        // std::cout<<"AAt ="<<AAt<<std::endl;
+        // std::cout<<"AAt_inv ="<<AAt_inv<<std::endl;
+        // std::cout<<"pseudo_inverse_jacobe ="<<pseudo_inverse_jacobe<<std::endl;
+        // std::cout<<"分步计算的伪逆 ="<<A_inv<<std::endl;
+        printf(" \033[0m \n");
         return pseudo_inverse_jacobe;
     }
 
@@ -1692,7 +1735,11 @@ namespace xj_dy_ns
         return this->Lambda_now_;
     }
 
-
+    /**
+     * @brief 获取计算完了的雅可比伪逆
+     * 
+     * @return Eigen::Matrix<double,Eigen::Dynamic,6> 行数不确定，列数是6
+     */
     Eigen::Matrix<double,Eigen::Dynamic,6> Robot_dynamic::get_pseudo_inverse_jacobe()
     {
         return this->jacobe_pse_inv_;

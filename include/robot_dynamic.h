@@ -91,6 +91,7 @@ namespace xj_dy_ns
         Eigen::Matrix<double,Eigen::Dynamic,1> get_G_();//获取重力的关节力矩值
         Eigen::VectorXd tor_gravity_and_Cq_cal();//获取使用牛顿欧拉法迭代计算重力+科氏力离心力
         double get_qi_now(int i);
+        Eigen::VectorXd get_q_now();
         void jacobi_cal();
         void djacobe_cal();
         Eigen::Matrix<double,3,3> get_0R(int i);

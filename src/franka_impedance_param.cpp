@@ -121,7 +121,14 @@ namespace xj_dy_ns
         matrix_K.topLeftCorner(3,3) = Eigen::Matrix3d::Identity()*Kx;
         matrix_K.bottomRightCorner(3,3) = Eigen::Matrix3d::Identity()*Kr;
         matrix_damping.setIdentity();
-        matrix_damping = 2*0.707*(matrix_K*Lambda_d).cwiseSqrt();
+        // matrix_damping = 2*0.707*(matrix_K*Lambda_d).cwiseSqrt();
+
+        Eigen::Matrix<double,6,6> lambda_dia = Eigen::Matrix<double,6,6>::Identity();
+        for (int i = 0; i < 6; i++)
+        {
+            lambda_dia(i,i) = Lambda_d(i,i);
+        }
+        matrix_damping = 2*0.707*(matrix_K*lambda_dia).cwiseSqrt();
     }
 
     /**
