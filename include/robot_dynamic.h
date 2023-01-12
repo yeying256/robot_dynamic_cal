@@ -184,6 +184,7 @@ namespace xj_dy_ns
         Eigen::Matrix<double,6,6> Lambda_now_cal();
         Eigen::Matrix<double,Eigen::Dynamic,6> get_pseudo_inverse_jacobe();
         Eigen::Matrix4d get_T_0tool();//获得末端坐标系到世界坐标系的位姿变换矩阵
+        Eigen::VectorXd get_dq_now();
         
 
 

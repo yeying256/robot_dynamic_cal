@@ -139,7 +139,7 @@ namespace xj_dy_ns
         Eigen::MatrixXd k1 = M_q*inv_jacobe;
         Eigen::MatrixXd k2 = k1*Lanmbda_d.inverse();
 
-        tau_imp_cmd = k1*(ddx_d-d_jacobe*dq) 
+        tau_imp_cmd = k1*(ddx_d-d_jacobe*dq)
         + tor__C_G
         + k2*(D_d*(dx_d-dx)
         + K_d*(x_err))
@@ -164,20 +164,23 @@ namespace xj_dy_ns
         n(1)=R_err(0,2)-R_err(2,0);
         n(2)=R_err(1,0)-R_err(0,1);
 
+        //计算旋转轴
         n = n/(2*sin(xita));
         Eigen::Matrix<double,6,1> err = Eigen::Matrix<double,6,1>::Zero();
         err.bottomRows(3) = n*xita;
         err.topRows(3) = T_d.topRightCorner(3,1) - T_now.topRightCorner(3,1);
+        
         //调试输出
-        // printf("\033[1;31;40m err =   \n");
-        // std::cout<<err<<std::endl;
-        // printf("   \033[0m \n");
+        printf("\033[1;31;40m err = \n");
+        std::cout<<err<<std::endl;
+        printf("   \033[0m \n");
         return err;
     }
 
     
     ImpedanceController::~ImpedanceController()
     {
+
     }
 
 

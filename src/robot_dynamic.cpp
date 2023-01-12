@@ -9,7 +9,7 @@ namespace xj_dy_ns
     */
     Robot_dynamic::Robot_dynamic(/* args */)
     {
-        ;
+        this->resize_param(6);
     }
 
     /**
@@ -124,9 +124,6 @@ namespace xj_dy_ns
         this->f_s_.setZero(dof);//静摩擦力
         this->tor_friction_.setZero(dof);//摩擦力
 
-
-
-        
     }
 
     /**
@@ -700,13 +697,13 @@ namespace xj_dy_ns
      */
     Eigen::Matrix<double,Eigen::Dynamic,1> Robot_dynamic::get_G_()//获取补偿重力的关节力矩值
     {
-        for (int i = 0; i < DOF_; i++)
-        {
-            /* code */
-            if(fabs(G_(i))<0.0001)
-            G_(i) = 0;
-        }
-        
+        //前段时间调bug，加了个判断死区。
+        // for (int i = 0; i < DOF_; i++)
+        // {
+        //     /* code */
+        //     if(fabs(G_(i))<0.0001)
+        //     G_(i) = 0;
+        // }
         
         return this->G_;
     }
@@ -1461,13 +1458,9 @@ namespace xj_dy_ns
         }
     }
 
-
-
-
-
     /**
      * @brief 用拉格朗日方法更新内部的惯性矩阵，并返回
-     * @return 返回惯性矩阵
+     * @return M_q 返回惯性矩阵
     */
     Eigen::MatrixXd Robot_dynamic::M_q_cal_Lagrange()//用拉格朗日方法求解惯性矩阵
     {
@@ -1506,7 +1499,10 @@ namespace xj_dy_ns
         jacobi_cal();
         // tor_M_C_neton_cal_();
         M_q_cal_Lagrange();
-        this->tor_gravity_and_Cq_cal();//更新重力加科氏力和离心力
+        this->tor_gravity_and_Cq_cal(); //更新重力加科氏力和离心力
+        this->tor_gravity_cal();        //更新重力
+
+
         this->djacobe_cal();//更新内部雅可比矩阵的导数
 
 
@@ -1754,7 +1750,16 @@ namespace xj_dy_ns
     {
         return this->_0T_tool;
     }
-
+    
+    /**
+     * @brief 返回当前关节速度
+     * 
+     * @return Eigen::VectorXd 
+     */
+    Eigen::VectorXd Robot_dynamic::get_dq_now()
+    {
+        return this->dq_;
+    }
 
 
 

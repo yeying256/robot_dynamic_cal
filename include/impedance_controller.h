@@ -66,8 +66,7 @@ namespace xj_dy_ns
         //这个是目标减去当前位姿态来返回笛卡尔空间下的位置误差和轴角误差
         static Eigen::Matrix<double,6,1> x_err_cal(Eigen::Matrix4d T_d,Eigen::Matrix4d T_now);
         ~ImpedanceController();
-    };
-    
+    };   
 
     
 }
