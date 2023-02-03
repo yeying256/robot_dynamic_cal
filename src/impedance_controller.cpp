@@ -1,5 +1,6 @@
 
 #include "impedance_controller.h"
+#include "math_wx.h"
 /// @brief 
 namespace xj_dy_ns
 {
@@ -96,7 +97,7 @@ namespace xj_dy_ns
      * @param dq 关节速度
      * @param F_ext 笛卡尔空间下工具坐标系当前所受外力，方向为受力方向，不是六维力传感器直接读出来的数据，这两个差一个负号
      * @param tor__C_G 关节空间下的科氏力离心力和重力的补偿力矩，不是真实方向！！！也就是惯性力的反方向，或者说是与加速度方向一致
-     * @return Eigen::VectorXd tau_imp_cmd计算出补偿力矩的大小
+     * @return Eigen::VectorXd tau_imp_cmd 计算出来阻抗控制器算出来的力矩
      */
     Eigen::VectorXd ImpedanceController::tau_impedance_cal(Eigen::Matrix<double,6,6> Lanmbda_d,
                                 Eigen::Matrix<double,6,6> D_d,
@@ -132,8 +133,6 @@ namespace xj_dy_ns
         // std::cout<<"tor__C_G ="<<tor__C_G<<std::endl;
         // printf(" \033[0m \n");
         
-
-
         Eigen::VectorXd tau_imp_cmd;
         tau_imp_cmd.setZero(tor__C_G.rows());//初始化补偿力矩的大小
         Eigen::MatrixXd k1 = M_q*inv_jacobe;
@@ -143,7 +142,62 @@ namespace xj_dy_ns
         + tor__C_G
         + k2*(D_d*(dx_d-dx)
         + K_d*(x_err))
-        + (k2 - jacobe.transpose())*F_ext;
+        + (k2 - jacobe.transpose())*F_ext;//受到的外力加进去
+        return tau_imp_cmd;
+    }
+
+    /**
+     * @brief 加入期望力进行计算
+     * 
+     * @param Lanmbda_d 笛卡尔空间下期望惯性
+     * @param D_d 笛卡尔空间下期望阻尼
+     * @param K_d 笛卡尔空间下期望刚度
+     * @param inv_jacobe 笛卡尔空间下雅可比的逆
+     * @param M_q 当前关节空间下惯性矩阵
+     * @param jacobe 雅可比矩阵
+     * @param d_jacobe 雅可比矩阵的微分
+     * @param x_err 笛卡尔空间下位姿误差（其中，转动误差为轴角表示）
+     * @param dx_d 笛卡尔空间下期望速度
+     * @param ddx_d 笛卡尔空间下期望加速度
+     * @param dx 笛卡尔空间下当前速度
+     * @param dq 当前关节角速度
+     * @param F_ext 笛卡尔空间下测量的当前外力
+     * @param F_d 笛卡尔空间下期望施加的外力
+     * @param tor__C_G 关节空间下重力和科里奥里力的补偿力矩
+     * @param T_r 引用传递，参考轨迹，更新之前是上一次（第n次）的迭代结果，更新之后是（第n+1）次的
+     * @return Eigen::VectorXd 
+     */
+    Eigen::VectorXd ImpedanceController::tau_impedance_cal(Eigen::Matrix<double,6,6> Lanmbda_d,
+                                        Eigen::Matrix<double,6,6> D_d,
+                                        Eigen::Matrix<double,6,6> K_d,
+                                        Eigen::Matrix<double,Eigen::Dynamic,6> inv_jacobe,
+                                        Eigen::MatrixXd M_q,
+                                        Eigen::Matrix<double,6,Eigen::Dynamic> jacobe,
+                                        Eigen::Matrix<double,6,Eigen::Dynamic> d_jacobe,
+                                        Eigen::Matrix<double,6,1> x_err,
+                                        Eigen::Matrix<double,6,1> dx_d,
+                                        Eigen::Matrix<double,6,1> ddx_d,
+                                        Eigen::Matrix<double,6,1> dx,
+                                        Eigen::VectorXd dq,
+                                        Eigen::Matrix<double,6,1> F_ext,
+                                        Eigen::Matrix<double,6,1> F_d,
+                                        Eigen::VectorXd tor__C_G,
+                                        Eigen::Matrix<double,4,4> &T_r 
+                                        )
+    {
+        
+        Eigen::VectorXd tau_imp_cmd;
+        tau_imp_cmd.setZero(tor__C_G.rows());//初始化补偿力矩的大小
+        Eigen::MatrixXd k1 = M_q*inv_jacobe;
+        Eigen::MatrixXd k2 = k1*Lanmbda_d.inverse();
+
+        tau_imp_cmd = k1*(ddx_d-d_jacobe*dq)
+        + tor__C_G
+        + k2*(D_d*(dx_d-dx)
+        + K_d*(x_err))
+        + jacobe.transpose()*F_d            //期望力加进去
+        + (k2 - jacobe.transpose())*F_ext;  //受到的外力加进去
+        
         return tau_imp_cmd;
     }
 

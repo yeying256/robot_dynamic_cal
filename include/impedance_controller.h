@@ -62,6 +62,24 @@ namespace xj_dy_ns
                                         Eigen::Matrix<double,6,1> F_ext,
                                         Eigen::VectorXd tor__C_G
                                         );
+        //计算阻抗控制计算出来的力矩，加入期望力
+        static Eigen::VectorXd tau_impedance_cal(Eigen::Matrix<double,6,6> Lanmbda_d,
+                                        Eigen::Matrix<double,6,6> D_d,
+                                        Eigen::Matrix<double,6,6> K_d,
+                                        Eigen::Matrix<double,Eigen::Dynamic,6> inv_jacobe,
+                                        Eigen::MatrixXd M_q,
+                                        Eigen::Matrix<double,6,Eigen::Dynamic> jacobe,
+                                        Eigen::Matrix<double,6,Eigen::Dynamic> d_jacobe,
+                                        Eigen::Matrix<double,6,1> x_err,
+                                        Eigen::Matrix<double,6,1> dx_d,
+                                        Eigen::Matrix<double,6,1> ddx_d,
+                                        Eigen::Matrix<double,6,1> dx,
+                                        Eigen::VectorXd dq,
+                                        Eigen::Matrix<double,6,1> F_ext,
+                                        Eigen::Matrix<double,6,1> F_d,
+                                        Eigen::VectorXd tor__C_G,
+                                        Eigen::Matrix<double,4,4> &T_r
+                                        );
 
         //这个是目标减去当前位姿态来返回笛卡尔空间下的位置误差和轴角误差
         static Eigen::Matrix<double,6,1> x_err_cal(Eigen::Matrix4d T_d,Eigen::Matrix4d T_now);
