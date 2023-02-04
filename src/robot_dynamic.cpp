@@ -1687,7 +1687,7 @@ namespace xj_dy_ns
         Eigen::Matrix<double,Eigen::Dynamic,6> A_inv = At*AAt_inv;
 
         pseudo_inverse_jacobe = jacobe.transpose()*((jacobe*jacobe.transpose()).inverse());
-        printf("\033[1;34;40m cmd_tor = \n");//蓝色
+        printf("\033[1;34;40m 这里是Robot_dynamic::pseudo_inverse_jacobe_cal函数\n");//蓝色
         std::cout<<"jacobe ="<<jacobe<<std::endl;
         // std::cout<<"At ="<<At<<std::endl;
         // std::cout<<"AAt ="<<AAt<<std::endl;

@@ -116,21 +116,21 @@ namespace xj_dy_ns
     {
         //测试显示输入参数程序
 
-        // printf("\033[1;32;40m cmd_tor =   \n");
-        // std::cout<<"Lanmbda_d ="<<Lanmbda_d<<std::endl;
-        // std::cout<<"D_d ="<<D_d<<std::endl;
-        // std::cout<<"K_d ="<<K_d<<std::endl;
-        // std::cout<<"inv_jacobe ="<<inv_jacobe<<std::endl;
-        // std::cout<<"jacobe ="<<jacobe<<std::endl;
-        // std::cout<<"d_jacobe ="<<d_jacobe<<std::endl;
-        // std::cout<<"x_err ="<<x_err<<std::endl;
-        // std::cout<<"dx_d ="<<dx_d<<std::endl;
-        // std::cout<<"ddx_d ="<<ddx_d<<std::endl;
-        // std::cout<<"dx ="<<dx<<std::endl;
-        // std::cout<<"dq ="<<dq<<std::endl;
-        // std::cout<<"F_ext ="<<F_ext<<std::endl;
-        // std::cout<<"tor__C_G ="<<tor__C_G<<std::endl;
-        // printf(" \033[0m \n");
+        printf("\033[1;32;40m cmd_tor =   \n");
+        std::cout<<"Lanmbda_d ="<<Lanmbda_d<<std::endl;
+        std::cout<<"D_d ="<<D_d<<std::endl;
+        std::cout<<"K_d ="<<K_d<<std::endl;
+        std::cout<<"inv_jacobe ="<<inv_jacobe<<std::endl;
+        std::cout<<"jacobe ="<<jacobe<<std::endl;
+        std::cout<<"d_jacobe ="<<d_jacobe<<std::endl;
+        std::cout<<"x_err ="<<x_err<<std::endl;
+        std::cout<<"dx_d ="<<dx_d<<std::endl;
+        std::cout<<"ddx_d ="<<ddx_d<<std::endl;
+        std::cout<<"dx ="<<dx<<std::endl;
+        std::cout<<"dq ="<<dq<<std::endl;
+        std::cout<<"F_ext ="<<F_ext<<std::endl;
+        std::cout<<"tor__C_G ="<<tor__C_G<<std::endl;
+        printf(" \033[0m \n");
         
         Eigen::VectorXd tau_imp_cmd;
         tau_imp_cmd.setZero(tor__C_G.rows());//初始化补偿力矩的大小
@@ -216,6 +216,7 @@ namespace xj_dy_ns
         X.bottomRows(6) = dxr_err;
 
         X=math_wx::Runge_Kutta_itr(A,B,X,dt);
+
         xr_err = X.topRows(6);
         dxr_err = X.bottomRows(6);
 
@@ -272,6 +273,7 @@ namespace xj_dy_ns
         M(1,2) = -n(0);
         M = M-M.transpose();
         Eigen::Matrix3d R = Eigen::Matrix3d::Identity()+sin(theta)*M+(1-cos(theta))*M*M;
+        return R;
     }
 
     
