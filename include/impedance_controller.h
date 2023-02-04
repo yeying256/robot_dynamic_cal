@@ -12,6 +12,7 @@
 #define IMPEDANCE_CONTROLLER_H
 
 #include "include_common.h"
+#include "math_wx.h"
 
 namespace xj_dy_ns
 {
@@ -62,6 +63,7 @@ namespace xj_dy_ns
                                         Eigen::Matrix<double,6,1> F_ext,
                                         Eigen::VectorXd tor__C_G
                                         );
+
         //计算阻抗控制计算出来的力矩，加入期望力
         static Eigen::VectorXd tau_impedance_cal(Eigen::Matrix<double,6,6> Lanmbda_d,
                                         Eigen::Matrix<double,6,6> D_d,
@@ -78,11 +80,17 @@ namespace xj_dy_ns
                                         Eigen::Matrix<double,6,1> F_ext,
                                         Eigen::Matrix<double,6,1> F_d,
                                         Eigen::VectorXd tor__C_G,
-                                        Eigen::Matrix<double,4,4> &T_r
+                                        Eigen::Matrix<double,6,1> &xr_err,
+                                        Eigen::Matrix<double,6,1> &dxr_err,
+                                        double dt
                                         );
 
         //这个是目标减去当前位姿态来返回笛卡尔空间下的位置误差和轴角误差
         static Eigen::Matrix<double,6,1> x_err_cal(Eigen::Matrix4d T_d,Eigen::Matrix4d T_now);
+        
+        //混在一起的轴角转化为旋转矩阵
+        static Eigen::Matrix3d axis2rot(Eigen::Vector3d n_theta);
+
         ~ImpedanceController();
     };   
 

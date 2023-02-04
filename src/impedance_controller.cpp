@@ -1,6 +1,5 @@
 
 #include "impedance_controller.h"
-#include "math_wx.h"
 /// @brief 
 namespace xj_dy_ns
 {
@@ -164,7 +163,9 @@ namespace xj_dy_ns
      * @param F_ext 笛卡尔空间下测量的当前外力
      * @param F_d 笛卡尔空间下期望施加的外力
      * @param tor__C_G 关节空间下重力和科里奥里力的补偿力矩
-     * @param T_r 引用传递，参考轨迹，更新之前是上一次（第n次）的迭代结果，更新之后是（第n+1）次的
+     * @param xr_err 引用传递，参考轨迹的误差，更新之前是上一次（第n次）的迭代结果，更新之后是（第n+1）次的
+     * @param dxr_err 参考轨迹的速度
+     * @param dt 间隔时间 
      * @return Eigen::VectorXd 
      */
     Eigen::VectorXd ImpedanceController::tau_impedance_cal(Eigen::Matrix<double,6,6> Lanmbda_d,
@@ -182,10 +183,11 @@ namespace xj_dy_ns
                                         Eigen::Matrix<double,6,1> F_ext,
                                         Eigen::Matrix<double,6,1> F_d,
                                         Eigen::VectorXd tor__C_G,
-                                        Eigen::Matrix<double,4,4> &T_r 
+                                        Eigen::Matrix<double,6,1> &xr_err,
+                                        Eigen::Matrix<double,6,1> &dxr_err,
+                                        double dt
                                         )
     {
-        
         Eigen::VectorXd tau_imp_cmd;
         tau_imp_cmd.setZero(tor__C_G.rows());//初始化补偿力矩的大小
         Eigen::MatrixXd k1 = M_q*inv_jacobe;
@@ -198,6 +200,27 @@ namespace xj_dy_ns
         + jacobe.transpose()*F_d            //期望力加进去
         + (k2 - jacobe.transpose())*F_ext;  //受到的外力加进去
         
+        //计算参考轨迹
+        Eigen::Matrix<double,12,12> A=Eigen::Matrix<double,12,12>::Zero();
+        Eigen::Matrix<double,12,1> B=Eigen::Matrix<double,12,1>::Zero();
+        Eigen::Matrix<double,12,1> X=Eigen::Matrix<double,12,1>::Zero();
+
+        A.topRightCorner(6,6).setIdentity();
+        A.bottomLeftCorner(6,6)=-K_d*Lanmbda_d.inverse();
+        A.bottomRightCorner(6,6)=-D_d*Lanmbda_d.inverse();
+        
+        B.bottomRows(6)=Lanmbda_d.inverse()*(F_ext+F_d);
+
+
+        X.topRows(6)=xr_err;
+        X.bottomRows(6) = dxr_err;
+
+        X=math_wx::Runge_Kutta_itr(A,B,X,dt);
+        xr_err = X.topRows(6);
+        dxr_err = X.bottomRows(6);
+
+
+
         return tau_imp_cmd;
     }
 
@@ -229,6 +252,26 @@ namespace xj_dy_ns
         std::cout<<err<<std::endl;
         printf("   \033[0m \n");
         return err;
+    }
+
+    /**
+     * @brief 混在一起的轴角转化为旋转矩阵
+     * 
+     * @param n_theta 轴角
+     * @return Eigen::Matrix3d 
+     */
+    Eigen::Matrix3d ImpedanceController::axis2rot(Eigen::Vector3d n_theta)
+    {
+        //单位化
+        double theta=n_theta.norm();
+        Eigen::Vector3d n=n_theta/theta;
+        //向量n的叉乘矩阵
+        Eigen::Matrix3d M=Eigen::Matrix3d::Zero();
+        M(0,1) = -n(2);
+        M(0,2) = n(1);
+        M(1,2) = -n(0);
+        M = M-M.transpose();
+        Eigen::Matrix3d R = Eigen::Matrix3d::Identity()+sin(theta)*M+(1-cos(theta))*M*M;
     }
 
     
