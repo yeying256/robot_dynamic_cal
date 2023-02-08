@@ -1687,14 +1687,14 @@ namespace xj_dy_ns
         Eigen::Matrix<double,Eigen::Dynamic,6> A_inv = At*AAt_inv;
 
         pseudo_inverse_jacobe = jacobe.transpose()*((jacobe*jacobe.transpose()).inverse());
-        printf("\033[1;34;40m 这里是Robot_dynamic::pseudo_inverse_jacobe_cal函数\n");//蓝色
-        std::cout<<"jacobe ="<<jacobe<<std::endl;
+        // printf("\033[1;34;40m 这里是Robot_dynamic::pseudo_inverse_jacobe_cal函数\n");//蓝色
+        // std::cout<<"jacobe ="<<jacobe<<std::endl;
         // std::cout<<"At ="<<At<<std::endl;
         // std::cout<<"AAt ="<<AAt<<std::endl;
         // std::cout<<"AAt_inv ="<<AAt_inv<<std::endl;
         // std::cout<<"pseudo_inverse_jacobe ="<<pseudo_inverse_jacobe<<std::endl;
         // std::cout<<"分步计算的伪逆 ="<<A_inv<<std::endl;
-        printf(" \033[0m \n");
+        // printf(" \033[0m \n");
         return pseudo_inverse_jacobe;
     }
 

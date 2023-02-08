@@ -129,6 +129,9 @@ namespace xj_dy_ns
             lambda_dia(i,i) = Lambda_d(i,i);
         }
         matrix_damping = 2*0.707*(matrix_K*lambda_dia).cwiseSqrt();
+        // matrix_damping = 20.707*(matrix_K*lambda_dia).cwiseSqrt();
+
+
     }
 
     /**

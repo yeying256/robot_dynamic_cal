@@ -27,12 +27,12 @@ namespace xj_dy_ns
                                             double dt
                                             )
     {
-        Eigen::VectorXd K1,K2,K3,K4 = Eigen::VectorXd::Zero(X.size());
+        Eigen::VectorXd K1,K2,K3,K4,X_now = Eigen::VectorXd::Zero(X.size());
         K1=A*X+B;
         K2=A*(X+0.5*dt*K1)+B;   
         K3=A*(X+0.5*dt*K2)+B;   
         K4=A*(X+dt*K3)+B;       
-        Eigen::VectorXd X_now=X+dt/6*(K1+2*K2+2*K3+K4);
+        X_now=X+dt/6*(K1+2*K2+2*K3+K4);
         return X_now;
     }
 }

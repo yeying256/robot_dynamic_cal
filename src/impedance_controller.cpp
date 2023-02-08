@@ -116,21 +116,21 @@ namespace xj_dy_ns
     {
         //测试显示输入参数程序
 
-        printf("\033[1;32;40m cmd_tor =   \n");
-        std::cout<<"Lanmbda_d ="<<Lanmbda_d<<std::endl;
-        std::cout<<"D_d ="<<D_d<<std::endl;
-        std::cout<<"K_d ="<<K_d<<std::endl;
-        std::cout<<"inv_jacobe ="<<inv_jacobe<<std::endl;
-        std::cout<<"jacobe ="<<jacobe<<std::endl;
-        std::cout<<"d_jacobe ="<<d_jacobe<<std::endl;
-        std::cout<<"x_err ="<<x_err<<std::endl;
-        std::cout<<"dx_d ="<<dx_d<<std::endl;
-        std::cout<<"ddx_d ="<<ddx_d<<std::endl;
-        std::cout<<"dx ="<<dx<<std::endl;
-        std::cout<<"dq ="<<dq<<std::endl;
-        std::cout<<"F_ext ="<<F_ext<<std::endl;
-        std::cout<<"tor__C_G ="<<tor__C_G<<std::endl;
-        printf(" \033[0m \n");
+        // printf("\033[1;32;40m cmd_tor =   \n");
+        // std::cout<<"Lanmbda_d ="<<Lanmbda_d<<std::endl;
+        // std::cout<<"D_d ="<<D_d<<std::endl;
+        // std::cout<<"K_d ="<<K_d<<std::endl;
+        // std::cout<<"inv_jacobe ="<<inv_jacobe<<std::endl;
+        // std::cout<<"jacobe ="<<jacobe<<std::endl;
+        // std::cout<<"d_jacobe ="<<d_jacobe<<std::endl;
+        // std::cout<<"x_err ="<<x_err<<std::endl;
+        // std::cout<<"dx_d ="<<dx_d<<std::endl;
+        // std::cout<<"ddx_d ="<<ddx_d<<std::endl;
+        // std::cout<<"dx ="<<dx<<std::endl;
+        // std::cout<<"dq ="<<dq<<std::endl;
+        // std::cout<<"F_ext ="<<F_ext<<std::endl;
+        // std::cout<<"tor__C_G ="<<tor__C_G<<std::endl;
+        // printf(" \033[0m \n");
         
         Eigen::VectorXd tau_imp_cmd;
         tau_imp_cmd.setZero(tor__C_G.rows());//初始化补偿力矩的大小
@@ -198,7 +198,7 @@ namespace xj_dy_ns
         + k2*(D_d*(dx_d-dx)
         + K_d*(x_err))
         + jacobe.transpose()*F_d            //期望力加进去
-        + (k2 - jacobe.transpose())*F_ext;  //受到的外力加进去
+        + (k2 - jacobe.transpose())*(F_ext+F_d);  //受到的外力加进去
         
         //计算参考轨迹
         Eigen::Matrix<double,12,12> A=Eigen::Matrix<double,12,12>::Zero();
@@ -215,12 +215,23 @@ namespace xj_dy_ns
         X.topRows(6)=xr_err;
         X.bottomRows(6) = dxr_err;
 
-        X=math_wx::Runge_Kutta_itr(A,B,X,dt);
+        // printf("\033[1;32;40m test1  \n");
+        // std::cout<<"X="<<X<<std::endl;
+        // std::cout<<"A="<<A<<std::endl;
+        // std::cout<<"B="<<B<<std::endl;
+
+        // printf(" \033[0m \n");
+
+        X = math_wx::Runge_Kutta_itr(A,B,X,dt);
 
         xr_err = X.topRows(6);
         dxr_err = X.bottomRows(6);
 
-
+        // printf("\033[1;32;40m xr_err =   \n");
+        // std::cout<<xr_err<<std::endl;
+        // std::cout<<"dxr_err:"<<dxr_err<<std::endl;
+            
+        // printf(" \033[0m \n");
 
         return tau_imp_cmd;
     }
@@ -249,9 +260,9 @@ namespace xj_dy_ns
         err.topRows(3) = T_d.topRightCorner(3,1) - T_now.topRightCorner(3,1);
         
         //调试输出
-        printf("\033[1;31;40m err = \n");
-        std::cout<<err<<std::endl;
-        printf("   \033[0m \n");
+        // printf("\033[1;31;40m err = \n");
+        // std::cout<<err<<std::endl;
+        // printf("   \033[0m \n");
         return err;
     }
 
