@@ -134,6 +134,7 @@ add_library(robot_dynamic_cal
   src/Quintic_inter.cpp
   src/impedance_controller.cpp
   src/math_wx.cpp
+  src/OVI_Controller.cpp
 )
 
 # add_dependencies(robot_dynamic_cal ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})

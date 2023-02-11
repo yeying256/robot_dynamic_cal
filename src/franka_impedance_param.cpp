@@ -44,6 +44,18 @@ namespace xj_dy_ns
         matrix_6X6 = Eigen::Matrix<double,6,6>::Identity()*x;
     }
 
+    /**
+     * @brief 功能和其它的无异，只是适配MatrixXd的场景
+     * 
+     * @param x 
+     * @param matrix_6X6 
+     */
+    void franka_impedance_param::set_cartation_param6X6_(const double& x,
+                                        Eigen::MatrixXd& matrix_6X6)
+    {
+        matrix_6X6 = Eigen::Matrix<double,6,6>::Identity()*x;
+    }
+
        /**
     * @brief 通过向量设置刚度矩阵
     * @param x 迪卡尔坐标下线性刚度向量或者阻尼
@@ -53,6 +65,14 @@ namespace xj_dy_ns
     void franka_impedance_param::set_cartation_impedance_(const double& x,
                                         Eigen::Matrix<double,6,6>& matrix_K,
                                         Eigen::Matrix<double,6,6>& matrix_D)
+    {
+        set_cartation_param6X6_(x,matrix_K);
+        matrix_D = matrix_K.cwiseSqrt() *2*0.707;
+    }
+
+    void franka_impedance_param::set_cartation_impedance_(const double& x,
+                                        Eigen::MatrixXd& matrix_K,
+                                        Eigen::MatrixXd& matrix_D)
     {
         set_cartation_param6X6_(x,matrix_K);
         matrix_D = matrix_K.cwiseSqrt() *2*0.707;
@@ -133,6 +153,33 @@ namespace xj_dy_ns
 
 
     }
+
+
+    void franka_impedance_param::set_cartation_impedance_(const double& Kx,
+                                        const double& Kr,
+                                        Eigen::MatrixXd& matrix_K,
+                                        Eigen::MatrixXd& matrix_damping,
+                                        const Eigen::MatrixXd&  Lambda_d)
+    {
+        // printf("\033[1;32;40m 这里是set_cartation_impedance_函数的开始 \033[0m \n");
+        
+        matrix_K.setIdentity(6,6);
+        matrix_K.topLeftCorner(3,3) = Eigen::Matrix3d::Identity()*Kx;
+        matrix_K.bottomRightCorner(3,3) = Eigen::Matrix3d::Identity()*Kr;
+        matrix_damping.setIdentity(6,6);
+        // matrix_damping = 2*0.707*(matrix_K*Lambda_d).cwiseSqrt();
+        // printf("\033[1;31;40m 这里是set_cartation_impedance_函数的测试1 \033[0m \n");
+        Eigen::Matrix<double,6,6> lambda_dia = Eigen::Matrix<double,6,6>::Identity();//取对角线的数据
+        for (int i = 0; i < 6; i++)
+        {
+            lambda_dia(i,i) = Lambda_d(i,i);
+        }
+        // printf("\033[1;31;40m 这里是set_cartation_impedance_函数的测试2 \033[0m \n");
+        matrix_damping = 2*0.707*(matrix_K*lambda_dia).cwiseSqrt();
+        // matrix_damping = 20.707*(matrix_K*lambda_dia).cwiseSqrt();
+
+
+    }                                        
 
     /**
      * @brief joint刚度

@@ -28,6 +28,18 @@ namespace xj_dy_ns
     public:
         OVI_Controller();
         bool init_param();//初始化传入参数
+        static std::vector<Eigen::MatrixXd> P_matrix_cal(double dt,
+                                                        std::vector<Eigen::MatrixXd> Md,
+                                                        std::vector<Eigen::MatrixXd> Dd,
+                                                        std::vector<Eigen::MatrixXd> Kd,
+                                                        Eigen::MatrixXd S,
+                                                        Eigen::MatrixXd Q,
+                                                        Eigen::MatrixXd R
+                                                        );
+        static Eigen::VectorXd OVI_tor_cal(Eigen::VectorXd epsil,
+                                            Eigen::VectorXd d_epsil,
+                                            Eigen::MatrixXd P,
+                                            double dt);
 
         ~OVI_Controller();
     };

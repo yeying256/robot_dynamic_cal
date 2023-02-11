@@ -188,6 +188,26 @@ namespace xj_dy_ns
                                         double dt
                                         )
     {
+
+
+                //测试显示输入参数程序
+
+        // printf("\033[1;32;40m =   \n");
+        // std::cout<<"Lanmbda_d ="<<Lanmbda_d<<std::endl;
+        // std::cout<<"D_d ="<<D_d<<std::endl;
+        // std::cout<<"K_d ="<<K_d<<std::endl;
+        // std::cout<<"inv_jacobe ="<<inv_jacobe<<std::endl;
+        // std::cout<<"jacobe ="<<jacobe<<std::endl;
+        // std::cout<<"d_jacobe ="<<d_jacobe<<std::endl;
+        // std::cout<<"x_err ="<<x_err<<std::endl;
+        // std::cout<<"dx_d ="<<dx_d<<std::endl;
+        // std::cout<<"ddx_d ="<<ddx_d<<std::endl;
+        // std::cout<<"dx ="<<dx<<std::endl;
+        // std::cout<<"dq ="<<dq<<std::endl;
+        // std::cout<<"F_ext ="<<F_ext<<std::endl;
+        // std::cout<<"tor__C_G ="<<tor__C_G<<std::endl;
+        // printf(" \033[0m \n");
+        
         Eigen::VectorXd tau_imp_cmd;
         tau_imp_cmd.setZero(tor__C_G.rows());//初始化补偿力矩的大小
         Eigen::MatrixXd k1 = M_q*inv_jacobe;
@@ -224,7 +244,7 @@ namespace xj_dy_ns
 
         X = math_wx::Runge_Kutta_itr(A,B,X,dt);
 
-        xr_err = X.topRows(6);
+        xr_err = X.topRows(6);//xr-xd
         dxr_err = X.bottomRows(6);
 
         // printf("\033[1;32;40m xr_err =   \n");
@@ -248,6 +268,7 @@ namespace xj_dy_ns
     {
         Eigen::Matrix3d R_err = T_d.topLeftCorner(3,3)*((T_now.topLeftCorner(3,3)).transpose());
         double xita = acos((R_err.trace()-1)/2);//计算角度
+        // std::cout<<"xita="<<xita<<std::endl;
         Eigen::Vector3d n = Eigen::Vector3d::Zero();
         n(0)=R_err(2,1)-R_err(1,2);
         n(1)=R_err(0,2)-R_err(2,0);
