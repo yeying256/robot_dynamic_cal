@@ -124,6 +124,10 @@ namespace xj_dy_ns
         this->f_s_.setZero(dof);//静摩擦力
         this->tor_friction_.setZero(dof);//摩擦力
 
+
+        limit_max.setZero(dof);
+        limit_min.setZero(dof);
+
     }
 
     /**
@@ -191,6 +195,13 @@ namespace xj_dy_ns
             }
             std::cout<<std::endl;
         }
+
+        for (int i = 0; i < dof; i++)
+        {
+            this->limit_min(i) = DH_table_red(i,6);
+            this->limit_max(i) = DH_table_red(i,7);
+        }
+        
 
     }
     
@@ -402,8 +413,6 @@ namespace xj_dy_ns
                 0,0,0,1;
 
             // std::cout<<"fuck!!!!!!!!!!!!! cos(theta) = "<<cos(theta)<<"T(1)="<<T(1)<<std::endl;
-
-
 
         }else//计算移动关节
         {//移动关节的话传进来是变量d
@@ -1510,6 +1519,8 @@ namespace xj_dy_ns
         jacobe_pse_inv_ = this->pseudo_inverse_jacobe_cal(this->jacobi_);
 
         this->Lambda_now_cal();
+         this->nullspace_jacobi_ =  nullspace_matrix_jacobi_cal(jacobe_pse_inv_,
+                                    jacobi_);
     }
 
 
@@ -1705,9 +1716,11 @@ namespace xj_dy_ns
      * @param j_pse_inv 
      * @return Eigen::Matrix<double,6,6> 
      */
-    Eigen::Matrix<double,6,6> Robot_dynamic::Lambda_now_cal(Eigen::MatrixXd Mq,Eigen::Matrix<double,Eigen::Dynamic,6> j_pse_inv)
+    Eigen::Matrix<double,6,6> Robot_dynamic::Lambda_now_cal(Eigen::MatrixXd Mq,Eigen::Matrix<double,6,-1> jacobi)
     {
-        return (j_pse_inv.transpose() * Mq * j_pse_inv);
+        Eigen::MatrixXd lambda= (jacobi*Mq.inverse()*jacobi.transpose()).inverse();
+        return lambda;
+        // return (j_pse_inv.transpose() * Mq * j_pse_inv);
     }
 
     /**
@@ -1717,7 +1730,7 @@ namespace xj_dy_ns
      */
     Eigen::Matrix<double,6,6> Robot_dynamic::Lambda_now_cal()
     {
-        Lambda_now_ = Lambda_now_cal(M_q_,jacobe_pse_inv_);
+        Lambda_now_ = Lambda_now_cal(M_q_,jacobi_);
         return Lambda_now_;
     }
 
@@ -1760,6 +1773,71 @@ namespace xj_dy_ns
     {
         return this->dq_;
     }
+
+    /**
+     * @brief 计算零空间矩阵（速度）
+     * 
+     * @param jacobi_p_inv 雅可比矩阵伪逆
+     * @param jacobi 雅可比矩阵
+     * @return Eigen::MatrixXd 返回零空间矩阵
+     */
+    Eigen::MatrixXd Robot_dynamic::nullspace_matrix_jacobi_cal(Eigen::MatrixXd jacobi_p_inv,Eigen::MatrixXd jacobi)
+    {
+        int dof =jacobi.cols();
+        if(jacobi_p_inv.cols()!=jacobi.rows() || jacobi_p_inv.rows()!=jacobi.cols())
+        {
+            printf("\033[1;31;40m  这里是nullspace_matrix_jacobi_cal函数,输入参数的行列有问题   \033[0m \n");
+        }
+        Eigen::MatrixXd I;
+        I.setIdentity(dof,dof);
+        Eigen::MatrixXd nullspace_jacobi = I - jacobi_p_inv*jacobi;
+        return nullspace_jacobi;
+    }
+
+    /**
+     * @brief 获得内部零空间矩阵
+     * 
+     * @return Eigen::MatrixXd 
+     */
+    Eigen::MatrixXd Robot_dynamic::get_nullspace_matrix()
+    {
+        return this->nullspace_jacobi_;
+    }
+
+    /**
+     * @brief 
+     * 
+     * @param kd 
+     * @return Eigen::VectorXd 
+     */
+    Eigen::VectorXd Robot_dynamic::limit_optimiza_tor_cal(double kd)
+    {
+        // Eigen::VectorXd tor_tmp =this->M_q_* this->get_nullspace_matrix() *((limit_max+limit_min)/2-q_now);
+        Eigen::VectorXd err = (limit_max+limit_min)/2.0-q_now;
+        Eigen::VectorXd tor_tmp =nullspace_matrix_Nd_tau_cal(this->jacobi_,this->Lambda_now_,this->M_q_) *kd*err;
+        printf("\033[1;31;40m  err=    \n");
+        std::cout<<err<<std::endl;
+        std::cout<<"jacobe_pse_inv_* jacobi_=" <<jacobi_*jacobe_pse_inv_<<std::endl;
+
+        printf("\033[0m");
+
+        return tor_tmp;
+    }
+
+    Eigen::MatrixXd Robot_dynamic::nullspace_matrix_Nd_tau_cal(Eigen::MatrixXd jacobi,Eigen::MatrixXd Lambda,Eigen::MatrixXd Mq)
+    {
+        int dof = jacobi.cols();
+        Eigen::MatrixXd J_T=jacobi.transpose();
+        Eigen::MatrixXd M_inv=Mq.inverse();
+        Eigen::MatrixXd N_d=Eigen::MatrixXd::Identity(dof,dof)-J_T*Lambda*jacobi*M_inv;
+        // printf("\033[1;31;40m  N_d=    \n");
+        // std::cout<<N_d<<std::endl;
+        // printf("\033[0m");
+        return N_d;
+    }
+
+
+
 
 
 

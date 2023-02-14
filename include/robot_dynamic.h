@@ -63,6 +63,9 @@ namespace xj_dy_ns
     double manipulabilityIndex_position_;
     Eigen::Matrix<double,Eigen::Dynamic,6> jacobe_pse_inv_;
     Eigen::Matrix<double,6,6> Lambda_now_;
+    Eigen::VectorXd limit_max;
+    Eigen::VectorXd limit_min;
+    Eigen::MatrixXd nullspace_jacobi_;
 
 
     bool init_size_flag=false;
@@ -177,15 +180,20 @@ namespace xj_dy_ns
         double manipulabilityIndex_position();//计算内部可操作度
         double manipulabilityIndex_position(Eigen::VectorXd q);//计算内部可操作度
         Eigen::VectorXd manipulabilityOptimization_tor_cal(const Eigen::VectorXd& q, const double k_0);
-        static Eigen::Matrix<double,Eigen::Dynamic,6> pseudo_inverse_jacobe_cal(Eigen::Matrix<double,6,Eigen::Dynamic> jacobe);
+        static Eigen::Matrix<double,Eigen::Dynamic,6> pseudo_inverse_jacobe_cal(Eigen::Matrix<double,6,Eigen::Dynamic> jacobi);
 
-        static Eigen::Matrix<double,6,6> Lambda_now_cal(Eigen::MatrixXd Mq,Eigen::Matrix<double,Eigen::Dynamic,6> j_pse_inv);
+        static Eigen::Matrix<double,6,6> Lambda_now_cal(Eigen::MatrixXd Mq,Eigen::Matrix<double,6,-1> jacobi);
         Eigen::Matrix<double,6,6> get_Lambda_now();
         Eigen::Matrix<double,6,6> Lambda_now_cal();
         Eigen::Matrix<double,Eigen::Dynamic,6> get_pseudo_inverse_jacobe();
         Eigen::Matrix4d get_T_0tool();//获得末端坐标系到世界坐标系的位姿变换矩阵
         Eigen::VectorXd get_dq_now();
-        
+
+        static Eigen::MatrixXd nullspace_matrix_jacobi_cal(Eigen::MatrixXd jacobi_p_inv,Eigen::MatrixXd jacobi);//计算零空间矩阵
+        static Eigen::MatrixXd nullspace_matrix_Nd_tau_cal(Eigen::MatrixXd jacobi,Eigen::MatrixXd Lambda,Eigen::MatrixXd Mq);
+        Eigen::MatrixXd get_nullspace_matrix();//获得内部零空间矩阵
+
+        Eigen::VectorXd limit_optimiza_tor_cal(double kd);//内部计算关节力矩限制
 
 
 
