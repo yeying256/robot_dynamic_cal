@@ -28,6 +28,13 @@ namespace xj_dy_ns
     std::vector<Eigen::Matrix<double,4,4>> T_;
     std::vector<Eigen::Matrix<double,3,1>> Pc;//质心向量
     std::vector<double> m_;
+    std::vector<Eigen::Matrix<double,3,3> > Ic_;//转动惯量
+    Eigen::Matrix<double,3,1> Pc_eff_;//末端执行器质心向量
+    double m_eff_;//末端执行器质量
+    Eigen::Matrix<double,3,3> Ic_eff_;//末端执行器转动惯量在质心处的表达
+
+    
+
     Eigen::Matrix<double,Eigen::Dynamic,1> G_;//补偿重力的关节力矩值
     std::vector<Eigen::Matrix<double,3,1>> F_T_EE;
     Eigen::Matrix<double,4,4> T_tool_;
@@ -49,7 +56,6 @@ namespace xj_dy_ns
     Eigen::Matrix<double,6,Eigen::Dynamic> jacobi_;//末端雅可比矩阵
     Eigen::Matrix<double,6,Eigen::Dynamic> d_jacobi_;//末端雅可比矩阵的导数
     
-    std::vector<Eigen::Matrix<double,3,3> > Ic_;//转动惯量
 
     Eigen::Matrix<double,Eigen::Dynamic,1> tor_CpM_neton_;
     Eigen::Matrix<double,Eigen::Dynamic,1> tor_CpM_neton_last_;
@@ -195,6 +201,13 @@ namespace xj_dy_ns
 
         Eigen::VectorXd limit_optimiza_tor_cal(double kd);//内部计算关节力矩限制
 
+        void set_endeffector_dynamic_param(Eigen::Matrix<double,3,1> Pc_eff,
+                                            double m_eff,
+                                            Eigen::Matrix<double,3,3> Ic_eff);//设置末端执行器的动力学参数
+
+    //         Eigen::Matrix<double,3,1> Pc_eff_;//末端执行器质心向量
+    // double m_eff_;//末端执行器质量
+    // Eigen::Matrix<double,3,3> Ic_eff_;//末端执行器转动惯量在质心处的表达
 
 
     };

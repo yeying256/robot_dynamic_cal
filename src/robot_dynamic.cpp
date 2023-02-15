@@ -1815,11 +1815,10 @@ namespace xj_dy_ns
         // Eigen::VectorXd tor_tmp =this->M_q_* this->get_nullspace_matrix() *((limit_max+limit_min)/2-q_now);
         Eigen::VectorXd err = (limit_max+limit_min)/2.0-q_now;
         Eigen::VectorXd tor_tmp =nullspace_matrix_Nd_tau_cal(this->jacobi_,this->Lambda_now_,this->M_q_) *kd*err;
-        printf("\033[1;31;40m  err=    \n");
-        std::cout<<err<<std::endl;
-        std::cout<<"jacobe_pse_inv_* jacobi_=" <<jacobi_*jacobe_pse_inv_<<std::endl;
-
-        printf("\033[0m");
+        // printf("\033[1;31;40m  err=    \n");
+        // std::cout<<err<<std::endl;
+        // std::cout<<"jacobe_pse_inv_* jacobi_=" <<jacobi_*jacobe_pse_inv_<<std::endl;
+        // printf("\033[0m");
 
         return tor_tmp;
     }
@@ -1835,16 +1834,36 @@ namespace xj_dy_ns
         // printf("\033[0m");
         return N_d;
     }
+    /**
+     * @brief 通过末端执行器在最后一个坐标系中的动力学参数来更新最后一个连杆的动力学参数
+     * 注意，使用此函数之前，一定要讲末端执行器的动力学参数转化为最后一个坐标系下的表达
+     * 
+     * @param Pc_eff 末端执行器在最后一个坐标系下的质心
+     * @param m_eff 末端执行器的质量
+     * @param Ic_eff 末端执行器在最后一个坐标系下表达的相对质心的转动惯量
+     */
+    void Robot_dynamic::set_endeffector_dynamic_param(Eigen::Matrix<double,3,1> Pc_eff,
+                                                        double m_eff,
+                                                        Eigen::Matrix<double,3,3> Ic_eff)
+    {
+        this->Pc_eff_=Pc_eff;
+        this->m_eff_=m_eff;
+        this->Ic_eff_=Ic_eff;
+        printf("\033[1;32;40m  设置末端执行器动力学参数成功    \n");
+        printf("\033[0m");
+        Eigen::Vector3d Pc_old=this->Pc[DOF_-1];//最后一个关节的质心向量
+        double m_old=m_[DOF_-1];
+        Eigen::Matrix3d Ic_old=Ic_[DOF_-1];
 
+        m_[DOF_-1]=m_eff+m_old;
+        Pc[DOF_-1]= (m_old*Pc_old+m_eff*Pc_eff)/(m_eff+m_old);//计算新的质心
 
+        Eigen::Vector3d Pc_new2Cold=Pc_old-Pc[DOF_-1];//新质心坐标系中的老连杆质心位置
+        Eigen::Vector3d Pc_new2Ceff=Pc_eff-Pc[DOF_-1];//新质心坐标系中的老末端执行器质心的位置
+        Ic_[DOF_-1]=Ic_old+m_old*(Pc_new2Cold.transpose()*Pc_new2Cold*Eigen::Matrix3d::Identity()-Pc_new2Cold*Pc_new2Cold.transpose()) //老连杆质心在新质心坐标系下的表达
+        +Ic_eff+m_eff*(Pc_new2Ceff.transpose()*Pc_new2Ceff*Eigen::Matrix3d::Identity()-Pc_new2Ceff*Pc_new2Ceff.transpose());//加上老末端执行器质心在新质心坐标系下的表达
 
+    }
 
-
-
-
-
-
-
-    
 
 }//namespace xj_dy_ns 
