@@ -13,6 +13,18 @@ namespace xj_dy_ns
     {
     }
 
+    /**
+     * @brief 
+     * 
+     * @param dt 
+     * @param Md 
+     * @param Dd 
+     * @param Kd 
+     * @param S 
+     * @param Q 
+     * @param R 
+     * @return std::vector<Eigen::MatrixXd> 
+     */
     std::vector<Eigen::MatrixXd> OVI_Controller::P_matrix_cal(double dt,
                                                         std::vector<Eigen::MatrixXd> Md,
                                                         std::vector<Eigen::MatrixXd> Dd,

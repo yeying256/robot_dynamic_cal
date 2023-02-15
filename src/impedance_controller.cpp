@@ -215,8 +215,9 @@ namespace xj_dy_ns
 
         tau_imp_cmd = k1*(ddx_d-d_jacobe*dq)
         + tor__C_G
-        + k2*(D_d*(dx_d-dx)
-        + K_d*(x_err))
+        + k2*(
+            D_d*(dx_d-dx)+
+            K_d*(x_err))
         + jacobe.transpose()*F_d            //期望力加进去
         + (k2 - jacobe.transpose())*(F_ext+F_d);  //受到的外力加进去
         
