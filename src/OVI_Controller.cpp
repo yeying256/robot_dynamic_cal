@@ -127,6 +127,7 @@ namespace xj_dy_ns
         Eigen::MatrixXd K= R.inverse()*B.transpose()*P;
         // std::cout<<"\033[1;31;40m "<<"这里是OVI_Controller::OVI_tor_cal 测试2 K="<<K<<"\033[1;31;40m "<<std::endl;
         Eigen::VectorXd miu = -K*x;
+        
         return miu;
     }
     
