@@ -73,6 +73,8 @@ namespace xj_dy_ns
     Eigen::VectorXd limit_min;
     Eigen::MatrixXd nullspace_jacobi_;
 
+    Eigen::Matrix<double,6,1> F_ext_;
+
 
     bool init_size_flag=false;
     int DOF_ = 0;
@@ -83,6 +85,7 @@ namespace xj_dy_ns
         ~Robot_dynamic();
         bool read_dynamic(const std::string& url,const int& DOF);
         void read_dynamic_type_Gong(Eigen::VectorXd param,int dof);
+        void read_dynamic_type_franka(Eigen::MatrixXd param,int dof);
         void set_DH_table(Eigen::Matrix<double,Eigen::Dynamic,7> dh_table,int dof);
 
         void set_q_now(Eigen::Matrix<double,Eigen::Dynamic,1> q_now);
@@ -204,6 +207,9 @@ namespace xj_dy_ns
         void set_endeffector_dynamic_param(Eigen::Matrix<double,3,1> Pc_eff,
                                             double m_eff,
                                             Eigen::Matrix<double,3,3> Ic_eff);//设置末端执行器的动力学参数
+        static Eigen::Matrix<double,6,1> F_ext_cal_by_tau_ext(Eigen::MatrixXd jacobi_r_inv,Eigen::VectorXd tau_ext);
+        Eigen::Matrix<double,6,1> F_ext_cal_inner(Eigen::VectorXd tau_measure);
+
 
     //         Eigen::Matrix<double,3,1> Pc_eff_;//末端执行器质心向量
     // double m_eff_;//末端执行器质量

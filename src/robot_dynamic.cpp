@@ -170,6 +170,23 @@ namespace xj_dy_ns
         }
     }
 
+    /**
+     * @brief 根据frankaurdf中的惯性参数设置的参数
+     * 
+     * @param param 每一行都是一组动力学参数， 质心向量x，y，z 质量 xx yy zz xy xz yz
+     * @param dof 
+     */
+    void Robot_dynamic::read_dynamic_type_franka(Eigen::MatrixXd param,int dof)
+    {
+        if (param.rows() != dof)
+        {
+            printf("\033[1;31;40m 参数数量不对\033[0m \n");
+            return;
+        }
+
+    }
+
+
     void Robot_dynamic::set_DH_table(Eigen::Matrix<double,Eigen::Dynamic,7> dh_table,int dof)
     {
         this->DH_table = dh_table;
@@ -1868,6 +1885,28 @@ namespace xj_dy_ns
         +Ic_eff+m_eff*(Pc_new2Ceff.transpose()*Pc_new2Ceff*Eigen::Matrix3d::Identity()-Pc_new2Ceff*Pc_new2Ceff.transpose());//加上老末端执行器质心在新质心坐标系下的表达
 
     }
+
+
+    Eigen::Matrix<double,6,1> Robot_dynamic::F_ext_cal_by_tau_ext(Eigen::MatrixXd jacobi_r_inv,Eigen::VectorXd tau_ext)
+    {
+        Eigen::Matrix<double,6,1> F_ext;
+        F_ext = jacobi_r_inv.transpose()*tau_ext;
+        return F_ext;
+    }
+
+    Eigen::Matrix<double,6,1> Robot_dynamic::F_ext_cal_inner(Eigen::VectorXd tau_measure)
+    {
+        Eigen::VectorXd tau_ext=
+        tau_measure
+        // +this->G_
+        // +this->tor_CpM_neton_
+        ;
+
+        Eigen::Matrix<double,6,1> F_ext = F_ext_cal_by_tau_ext(this->jacobe_pse_inv_,tau_ext);
+        return F_ext;
+    }
+
+
 
 
 }//namespace xj_dy_ns 
