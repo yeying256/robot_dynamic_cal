@@ -198,8 +198,8 @@ namespace xj_dy_ns
 
         for (int i = 0; i < dof; i++)
         {
-            this->limit_min(i) = DH_table_red(i,6);
-            this->limit_max(i) = DH_table_red(i,7);
+            this->limit_min(i) = DH_table_red(i,5);
+            this->limit_max(i) = DH_table_red(i,6);
         }
         
 
@@ -1815,10 +1815,14 @@ namespace xj_dy_ns
         // Eigen::VectorXd tor_tmp =this->M_q_* this->get_nullspace_matrix() *((limit_max+limit_min)/2-q_now);
         Eigen::VectorXd err = (limit_max+limit_min)/2.0-q_now;
         Eigen::VectorXd tor_tmp =nullspace_matrix_Nd_tau_cal(this->jacobi_,this->Lambda_now_,this->M_q_) *kd*err;
-        // printf("\033[1;31;40m  err=    \n");
-        // std::cout<<err<<std::endl;
-        // std::cout<<"jacobe_pse_inv_* jacobi_=" <<jacobi_*jacobe_pse_inv_<<std::endl;
-        // printf("\033[0m");
+        printf("\033[1;31;40m \n");
+        std::cout<< "零空间limit_max="<<limit_max<<std::endl;
+        std::cout<< "零空间limit_min="<<limit_min<<std::endl;
+
+
+        std::cout<< "零空间err="<<err<<std::endl;
+        std::cout<<"零空间jacobe_pse_inv_* jacobi_=" <<jacobi_*jacobe_pse_inv_<<std::endl;
+        printf("\033[0m");
 
         return tor_tmp;
     }
@@ -1829,9 +1833,9 @@ namespace xj_dy_ns
         Eigen::MatrixXd J_T=jacobi.transpose();
         Eigen::MatrixXd M_inv=Mq.inverse();
         Eigen::MatrixXd N_d=Eigen::MatrixXd::Identity(dof,dof)-J_T*Lambda*jacobi*M_inv;
-        // printf("\033[1;31;40m  N_d=    \n");
-        // std::cout<<N_d<<std::endl;
-        // printf("\033[0m");
+        printf("\033[1;31;40m  零空间N_d=    \n");
+        std::cout<<N_d<<std::endl;
+        printf("\033[0m");
         return N_d;
     }
     /**

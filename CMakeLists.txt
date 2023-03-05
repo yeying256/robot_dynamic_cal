@@ -122,6 +122,7 @@ catkin_package(
 
 # add_executable(robot_dynamic_cal src/franka_impedance_param.cpp
 # src/robot_dynamic.cpp)
+set(CMAKE_BUILD_TYPE Release)
 include_directories(
 include
   ${catkin_INCLUDE_DIRS}
