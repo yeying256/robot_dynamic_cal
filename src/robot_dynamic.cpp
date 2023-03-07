@@ -172,8 +172,8 @@ namespace xj_dy_ns
 
     /**
      * @brief 根据frankaurdf中的惯性参数设置的参数
-     * 
-     * @param param 每一行都是一组动力学参数， 质心向量x，y，z 质量 xx yy zz xy xz yz
+     *                                           0  1  2  3  4  5  6  7  8  9  10  11
+     * @param param 每一行都是一组动力学参数， 质心向量x，y，z 质量 xx yy zz xy xz yz fs  mu
      * @param dof 
      */
     void Robot_dynamic::read_dynamic_type_franka(Eigen::MatrixXd param,int dof)
@@ -184,9 +184,43 @@ namespace xj_dy_ns
             return;
         }
 
+        this->DOF_=dof;
+        for (int i = 0; i < dof; i++)                           //自由度数
+        {
+            this->Pc[i](0) = param(i,0);     //设置质心向量
+            this->Pc[i](1) = param(i,1);     //设置质心向量
+            this->Pc[i](2) = param(i,2);     //设置质心向量
+
+
+            this->m_[i] = param(i,3);                      //设置m
+
+            this->Ic_[i](0,0) = param(i,4);              //xx
+            this->Ic_[i](1,1) = param(i,5);           //yy
+            this->Ic_[i](2,2) = param(i,6);          //zz
+
+            this->Ic_[i](0,1) = -param(i,7);         //xy
+            this->Ic_[i](1,0) = -param(i,7);
+
+            this->Ic_[i](0,2) = -param(i,8);         //xz
+            this->Ic_[i](2,0) = -param(i,8);
+
+            this->Ic_[i](1,2) = -param(i,9);         //yz
+            this->Ic_[i](2,1) = -param(i,9);
+
+
+            this->f_s_(i) = param(i ,10);           //静摩擦力
+            this->f_mu_(i) = param(i,11);           //速度阻尼系数
+
+        }
+
     }
 
-
+    /**
+     * @brief ai-1 alphai-1 di
+     * 
+     * @param dh_table 
+     * @param dof 
+     */
     void Robot_dynamic::set_DH_table(Eigen::Matrix<double,Eigen::Dynamic,7> dh_table,int dof)
     {
         this->DH_table = dh_table;
@@ -473,10 +507,11 @@ namespace xj_dy_ns
                 temp_0_Ti=temp_0_Ti*T_[j];//坐标变换矩阵
             }
             this->_0T_i[i] =temp_0_Ti * T_[i];//计算了从0坐标系到i坐标系的变换矩阵
-            this->_0T_tool = _0T_i[DOF_-1]*this->T_tool_;//计算了从0到末端执行器的变换矩阵
         // cout<<"T_ = "<< T_.at(i)<<endl;
 
         }
+        this->_0T_tool = _0T_i[DOF_-1]*this->T_tool_;//计算了从0到末端执行器的变换矩阵
+
     }
 
 
@@ -531,9 +566,16 @@ namespace xj_dy_ns
         //     _0Rn = _0Rn*get_R(i);
         // }
         Eigen::Matrix<double,3,3> _0Rn;
+        if (n<0)
+        {
+            _0Rn = Eigen::Matrix3d::Identity();
+        }
+        else{
         _0Rn =  _0T_i[n].topLeftCorner(3,3);
-
+        }
         return _0Rn;
+        
+        
     }
 
 
@@ -772,18 +814,36 @@ namespace xj_dy_ns
         {
             if (joint_is_rev(i))//如果是旋转关节
             {
-            Eigen::Matrix<double,4,4> Ti_tool= Eigen::Matrix<double,4,4>::Identity();
-            for (int j = i+1; j <DOF_ ; j++)//Ti都是第i-1个坐标系变换到第i个坐标系的变换矩阵
-            {
-                Ti_tool =Ti_tool*this->T_.at(j);
-            }
-            Ti_tool = Ti_tool*this->T_tool_;//乘上末端的工具坐标系变换
-            Eigen::Matrix<double,3,1> _iPi_tool= Ti_tool.topRightCorner(3,1);
-            Eigen::Matrix<double,3,1> J02_i = this->get_0R(i)*zi.cross(_iPi_tool);//雅可比矩阵1到3行，第i列
-            Jacobi.block<3,1>(0,i) = J02_i;
-            //////////////////上面是雅可比矩阵前三行的计算
-            //////////////////下面是雅可比矩阵后三行的计算
-            Jacobi.block<3,1>(3,i) = this->get_0R(i) *zi;
+            Eigen::Matrix<double,4,4> Ti_tool= Eigen::Matrix<double,4,4>::Identity(); //i到末端的变换矩阵
+
+                // for (int j = i+1; j <DOF_ ; j++)//Ti都是第i-1个坐标系变换到第i个坐标系的变换矩阵
+                // {
+                //     Ti_tool =Ti_tool*this->T_.at(j);
+                // }
+                // Ti_tool = Ti_tool*this->T_tool_;//乘上末端的工具坐标系变换
+                // Eigen::Matrix<double,3,1> _iPi_tool= Ti_tool.topRightCorner(3,1);
+                // Eigen::Vector3d zi_cross__iPi_tool = zi.cross(_iPi_tool);
+                // Eigen::Matrix<double,3,1> J02_i = this->get_0R(i)*zi_cross__iPi_tool;//雅可比矩阵1到3行，第i列
+                // Jacobi.block<3,1>(0,i) = J02_i;
+                // //////////////////上面是雅可比矩阵前三行的计算
+                // //////////////////下面是雅可比矩阵后三行的计算
+                // Jacobi.block<3,1>(3,i) = this->get_0R(i) *zi;
+
+
+                for (int j = i+1; j <DOF_ ; j++)//Ti都是第i-1个坐标系变换到第i个坐标系的变换矩阵
+                {
+                    Ti_tool =Ti_tool*this->T_.at(j);
+                }
+                Ti_tool = Ti_tool*this->T_tool_;//乘上末端的工具坐标系变换
+                Eigen::Matrix<double,3,1> _iPi_tool= Ti_tool.topRightCorner(3,1);
+                Eigen::Vector3d zi_cross__iPi_tool = zi.cross(_iPi_tool);
+                Eigen::Matrix<double,3,1> J02_i = this->get_0R(i)*zi_cross__iPi_tool;//雅可比矩阵1到3行，第i列
+                Jacobi.block<3,1>(0,i) = J02_i;
+                //////////////////上面是雅可比矩阵前三行的计算
+                //////////////////下面是雅可比矩阵后三行的计算
+                Jacobi.block<3,1>(3,i) = this->get_0R(i) *zi;
+
+
             }//
             else//移动关节
             {
@@ -816,9 +876,12 @@ namespace xj_dy_ns
             }
             Ti_tool = Ti_tool*this->T_tool_;//乘上末端的工具坐标系变换
             Eigen::Matrix<double,3,1> _iPi_tool= Ti_tool.topRightCorner(3,1);//这个意思是i坐标系原点到tool的向量，在第i个坐标系下表示
-            Eigen::Matrix<double,3,1> temp1=this->get_vel_w_iter().topLeftCorner(3,1).eval()-v_[i];//如果不提前算出来，直接弄到表达式里会报错
+            // Eigen::Matrix<double,3,1> temp1=this->get_vel_w_iter().topLeftCorner(3,1).eval()-v_[i];//如果不提前算出来，直接弄到表达式里会报错
+            Eigen::Matrix<double,3,1> temp1=this->get_vel_w_jacobe().topLeftCorner(3,1).eval()-v_[i];//如果不提前算出来，直接弄到表达式里会报错
 
-            Eigen::Matrix<double,3,1> J02_i = this->w_[i].cross(this->get_0R(i)*zi).cross(_iPi_tool) //w叉乘用在zi在世界坐标系下的求导，先算前面再算后面
+            Eigen::Matrix<double,3,1> J02_i = this->w_[i].cross(this->get_0R(i)*zi).cross(this->get_0R(i)*_iPi_tool) //w叉乘用在zi在世界坐标系下的求导，先算前面再算后面
+
+            // Eigen::Matrix<double,3,1> J02_i = this->w_[i].cross(this->get_0R(i)*zi).cross(_iPi_tool) //w叉乘用在zi在世界坐标系下的求导，先算前面再算后面
             + (this->get_0R(i)*zi).cross(temp1);//这个因为是都在世界坐标系下的速度相减，所以叉乘前面的也要在世界坐标系下
             // + (this->get_0R(i)*zi).cross(this->get_vel_w_iter().topLeftCorner(3,1).eval()-v_[i]);//这个因为是都在世界坐标系下的速度相减，所以叉乘前面的也要在世界坐标系下
             //雅可比矩阵的导数1到3行，第i列
@@ -834,6 +897,7 @@ namespace xj_dy_ns
                 djacobe.block<6,1>(0,i) = J_line_i;
             }
         }
+        this->d_jacobi_=djacobe;
     }
 
 
@@ -1035,7 +1099,9 @@ namespace xj_dy_ns
     void Robot_dynamic::set_dq_now(Eigen::Matrix<double,Eigen::Dynamic,1> dq)//设置当前关节速度
     {
 
-        this->dq_ = this->tor_filter(dq,30,0.008,&(this->dq_last_));
+        // this->dq_ = this->tor_filter(dq,30,0.008,&(this->dq_last_));
+        this->dq_ = dq;
+
         
     }
 
@@ -1707,12 +1773,12 @@ namespace xj_dy_ns
     {
         Eigen::Matrix<double,Eigen::Dynamic,6>pseudo_inverse_jacobe;
         
-        Eigen::Matrix<double,Eigen::Dynamic,6> At = jacobe.transpose();
+        // Eigen::Matrix<double,Eigen::Dynamic,6> At = jacobe.transpose();
         
-        Eigen::Matrix<double,6,6> AAt = jacobe*At;
-        Eigen::Matrix<double,6,6> AAt_inv = AAt.inverse();
+        // Eigen::Matrix<double,6,6> AAt = jacobe*At;
+        // Eigen::Matrix<double,6,6> AAt_inv = AAt.inverse();
 
-        Eigen::Matrix<double,Eigen::Dynamic,6> A_inv = At*AAt_inv;
+        // Eigen::Matrix<double,Eigen::Dynamic,6> A_inv = At*AAt_inv;
 
         pseudo_inverse_jacobe = jacobe.transpose()*((jacobe*jacobe.transpose()).inverse());
         // printf("\033[1;34;40m 这里是Robot_dynamic::pseudo_inverse_jacobe_cal函数\n");//蓝色
@@ -1832,14 +1898,14 @@ namespace xj_dy_ns
         // Eigen::VectorXd tor_tmp =this->M_q_* this->get_nullspace_matrix() *((limit_max+limit_min)/2-q_now);
         Eigen::VectorXd err = (limit_max+limit_min)/2.0-q_now;
         Eigen::VectorXd tor_tmp =nullspace_matrix_Nd_tau_cal(this->jacobi_,this->Lambda_now_,this->M_q_) *kd*err;
-        printf("\033[1;31;40m \n");
-        std::cout<< "零空间limit_max="<<limit_max<<std::endl;
-        std::cout<< "零空间limit_min="<<limit_min<<std::endl;
+        // printf("\033[1;31;40m \n");
+        // std::cout<< "零空间limit_max="<<limit_max<<std::endl;
+        // std::cout<< "零空间limit_min="<<limit_min<<std::endl;
 
 
-        std::cout<< "零空间err="<<err<<std::endl;
-        std::cout<<"零空间jacobe_pse_inv_* jacobi_=" <<jacobi_*jacobe_pse_inv_<<std::endl;
-        printf("\033[0m");
+        // std::cout<< "零空间err="<<err<<std::endl;
+        // std::cout<<"零空间jacobe_pse_inv_* jacobi_=" <<jacobi_*jacobe_pse_inv_<<std::endl;
+        // printf("\033[0m");
 
         return tor_tmp;
     }
@@ -1850,9 +1916,9 @@ namespace xj_dy_ns
         Eigen::MatrixXd J_T=jacobi.transpose();
         Eigen::MatrixXd M_inv=Mq.inverse();
         Eigen::MatrixXd N_d=Eigen::MatrixXd::Identity(dof,dof)-J_T*Lambda*jacobi*M_inv;
-        printf("\033[1;31;40m  零空间N_d=    \n");
-        std::cout<<N_d<<std::endl;
-        printf("\033[0m");
+        // printf("\033[1;31;40m  零空间N_d=    \n");
+        // std::cout<<N_d<<std::endl;
+        // printf("\033[0m");
         return N_d;
     }
     /**

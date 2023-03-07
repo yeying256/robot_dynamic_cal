@@ -213,13 +213,24 @@ namespace xj_dy_ns
         Eigen::MatrixXd k1 = M_q*inv_jacobe;
         Eigen::MatrixXd k2 = k1*Lanmbda_d.inverse();
 
-        tau_imp_cmd = k1*(ddx_d-d_jacobe*dq)
-        + tor__C_G
-        + k2*(
+        Eigen::MatrixXd k3 = jacobe*M_q.inverse()*jacobe.transpose();
+        Eigen::MatrixXd Lambda_now = k3.inverse();
+
+        tau_imp_cmd = jacobe.transpose()* Lambda_now*(ddx_d-d_jacobe*dq)
+        + jacobe.transpose()*(Lambda_now*jacobe*M_q.inverse())*tor__C_G
+        + jacobe.transpose() * Lambda_now * Lanmbda_d.inverse() *(
             D_d*(dx_d-dx)+
             K_d*(x_err))
         + jacobe.transpose()*F_d            //期望力加进去
-        + (k2 - jacobe.transpose())*(F_ext+F_d);  //受到的外力加进去
+        + jacobe.transpose()*(Lambda_now*Lanmbda_d.inverse() - Eigen::Matrix<double,6,6>::Identity())*(F_ext+F_d);  //受到的外力加进去
+
+        // tau_imp_cmd = k1*(ddx_d-d_jacobe*dq)
+        // + tor__C_G
+        // + k2*(
+        //     D_d*(dx_d-dx)+
+        //     K_d*(x_err))
+        // + jacobe.transpose()*F_d            //期望力加进去
+        // + (k2 - jacobe.transpose())*(F_ext+F_d);  //受到的外力加进去
         
         //计算参考轨迹
         Eigen::Matrix<double,12,12> A=Eigen::Matrix<double,12,12>::Zero();
