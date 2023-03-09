@@ -1099,7 +1099,7 @@ namespace xj_dy_ns
     void Robot_dynamic::set_dq_now(Eigen::Matrix<double,Eigen::Dynamic,1> dq)//设置当前关节速度
     {
 
-        // this->dq_ = this->tor_filter(dq,30,0.008,&(this->dq_last_));
+        this->dq_ = this->tor_filter(dq,100,0.001,&(this->dq_last_));
         this->dq_ = dq;
 
         
@@ -1494,6 +1494,26 @@ namespace xj_dy_ns
         alpha = alpha/(1+alpha);
         tor_out = tor_*alpha + (1-alpha)*(*tor_last);
         *tor_last = tor_out;
+        return tor_out;
+    }
+
+    Eigen::VectorXd Robot_dynamic::tor_filter2(Eigen::VectorXd &tor_,
+        double hz,
+        double period,
+        Eigen::VectorXd& tor_last)
+    {
+        // std::cout<<"cal_tor_="<<tor_<<std::endl;
+        // std::cout<<"cal_tor_last="<<tor_last<<std::endl;
+        Eigen::VectorXd tor_out;
+        double alpha =2*3.14*hz*period;
+        alpha = alpha/(1+alpha);
+        tor_out = alpha*tor_ + (1-alpha)*(tor_last);
+        tor_ = tor_out;
+        tor_last = tor_out;
+        // std::cout<<"tor_last="<<tor_last<<std::endl;
+        // std::cout<<"tor_out="<<tor_out<<std::endl;
+
+
         return tor_out;
     }
 
@@ -1945,7 +1965,7 @@ namespace xj_dy_ns
         m_[DOF_-1]=m_eff+m_old;
         Pc[DOF_-1]= (m_old*Pc_old+m_eff*Pc_eff)/(m_eff+m_old);//计算新的质心
 
-        Eigen::Vector3d Pc_new2Cold=Pc_old-Pc[DOF_-1];//新质心坐标系中的老连杆质心位置
+        Eigen::Vector3d Pc_new2Cold=Pc_old-Pc[DOF_-1];//新质心坐标系中的老Lambda_d_lqr_连杆质心位置
         Eigen::Vector3d Pc_new2Ceff=Pc_eff-Pc[DOF_-1];//新质心坐标系中的老末端执行器质心的位置
         Ic_[DOF_-1]=Ic_old+m_old*(Pc_new2Cold.transpose()*Pc_new2Cold*Eigen::Matrix3d::Identity()-Pc_new2Cold*Pc_new2Cold.transpose()) //老连杆质心在新质心坐标系下的表达
         +Ic_eff+m_eff*(Pc_new2Ceff.transpose()*Pc_new2Ceff*Eigen::Matrix3d::Identity()-Pc_new2Ceff*Pc_new2Ceff.transpose());//加上老末端执行器质心在新质心坐标系下的表达
@@ -1965,8 +1985,11 @@ namespace xj_dy_ns
         Eigen::VectorXd tau_ext=
         tau_measure
         // +this->G_
+        +get_tor_CpG_neton_()
+        -get_G_();
         // +this->tor_CpM_neton_
         ;
+        
 
         Eigen::Matrix<double,6,1> F_ext = F_ext_cal_by_tau_ext(this->jacobe_pse_inv_,tau_ext);
         return F_ext;

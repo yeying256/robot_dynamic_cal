@@ -156,10 +156,16 @@ namespace xj_dy_ns
         Eigen::VectorXd get_tor_CpM_neton_();//获取惯性力和离心力
         Eigen::VectorXd get_tor_CpG_neton_();//获取
 
-        Eigen::Matrix<double,Eigen::Dynamic,1> tor_filter(Eigen::Matrix<double,Eigen::Dynamic,1> tor_,
+        Eigen::Matrix<double,Eigen::Dynamic,1> tor_filter(Eigen::VectorXd tor_,
         double hz,
         double period,
-        Eigen::Matrix<double,Eigen::Dynamic,1>* tor_last);
+        Eigen::VectorXd* tor_last);
+
+        static Eigen::Matrix<double,Eigen::Dynamic,1> tor_filter2(Eigen::VectorXd& tor_,
+        double hz,
+        double period,
+        Eigen::VectorXd& tor_last);
+
         
 
         Eigen::Matrix<double,Eigen::Dynamic,1>* get_tor_CpM_neton_last_ptr();

@@ -190,18 +190,18 @@ namespace xj_dy_ns
     {
 
 
-                //测试显示输入参数程序
-
-        // printf("\033[1;32;40m =   \n");
+                //测试显示输入参数程序  \n");
         // std::cout<<"Lanmbda_d ="<<Lanmbda_d<<std::endl;
         // std::cout<<"D_d ="<<D_d<<std::endl;
         // std::cout<<"K_d ="<<K_d<<std::endl;
         // std::cout<<"inv_jacobe ="<<inv_jacobe<<std::endl;
         // std::cout<<"jacobe ="<<jacobe<<std::endl;
-        // std::cout<<"d_jacobe ="<<d_jacobe<<std::endl;
-        // std::cout<<"x_err ="<<x_err<<std::endl;
-        // std::cout<<"dx_d ="<<dx_d<<std::endl;
-        // std::cout<<"ddx_d ="<<ddx_d<<std::endl;
+        // std::cout<<"d_jacobe ="<<  \n");
+        // std::cout<<"Lanmbda_d ="<<Lanmbda_d<<std::endl;
+        // std::cout<<"D_d ="<<D_d<<std::endl;
+        // std::cout<<"K_d ="<<K_d<<std::endl;
+        // std::cout<<"inv_jacobe ="<<inv_jacobe<<std::endl;
+        // std::cout<<"jacobe ="<<jax_d<<std::endl;
         // std::cout<<"dx ="<<dx<<std::endl;
         // std::cout<<"dq ="<<dq<<std::endl;
         // std::cout<<"F_ext ="<<F_ext<<std::endl;
@@ -221,18 +221,20 @@ namespace xj_dy_ns
         + jacobe.transpose() * Lambda_now * Lanmbda_d.inverse() *(
             D_d*(dx_d-dx)+
             K_d*(x_err))
-        + jacobe.transpose()*F_d            //期望力加进去
-        + jacobe.transpose()*(Lambda_now*Lanmbda_d.inverse() - Eigen::Matrix<double,6,6>::Identity())*(F_ext+F_d);  //受到的外力加进去
+        + jacobe.transpose()* F_d            //期望力加进去
+        + jacobe.transpose()
+                *(Lambda_now*Lanmbda_d.inverse() 
+                    - Eigen::Matrix<double,6,6>::Identity())
+                *(F_ext+F_d);  //受到的外力加进去
 
         // tau_imp_cmd = k1*(ddx_d-d_jacobe*dq)
         // + tor__C_G
         // + k2*(
         //     D_d*(dx_d-dx)+
         //     K_d*(x_err))
-        // + jacobe.transpose()*F_d            //期望力加进去
+        // + jacobe.transpose()*F_d            //期望力加进
         // + (k2 - jacobe.transpose())*(F_ext+F_d);  //受到的外力加进去
         
-        //计算参考轨迹
         Eigen::Matrix<double,12,12> A=Eigen::Matrix<double,12,12>::Zero();
         Eigen::Matrix<double,12,1> B=Eigen::Matrix<double,12,1>::Zero();
         Eigen::Matrix<double,12,1> X=Eigen::Matrix<double,12,1>::Zero();
