@@ -195,6 +195,8 @@ namespace xj_dy_ns
         double manipulabilityIndex_position();//计算内部可操作度
         double manipulabilityIndex_position(Eigen::VectorXd q);//计算内部可操作度
         Eigen::VectorXd manipulabilityOptimization_tor_cal(const Eigen::VectorXd& q, const double k_0);
+        Eigen::VectorXd manipulabilityOptimization_tor_cal_2(const Eigen::VectorXd& q, const double k_0);//讲关节限位更新到可操作度权重里
+
         static Eigen::Matrix<double,Eigen::Dynamic,6> pseudo_inverse_jacobe_cal(Eigen::Matrix<double,6,Eigen::Dynamic> jacobi);
 
         static Eigen::Matrix<double,6,6> Lambda_now_cal(Eigen::MatrixXd Mq,Eigen::Matrix<double,6,-1> jacobi);

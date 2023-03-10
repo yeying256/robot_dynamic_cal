@@ -1099,7 +1099,7 @@ namespace xj_dy_ns
     void Robot_dynamic::set_dq_now(Eigen::Matrix<double,Eigen::Dynamic,1> dq)//设置当前关节速度
     {
 
-        this->dq_ = this->tor_filter(dq,100,0.001,&(this->dq_last_));
+        // this->dq_ = this->tor_filter(dq,100,0.001,&(this->dq_last_));
         this->dq_ = dq;
 
         
@@ -1745,8 +1745,8 @@ namespace xj_dy_ns
         partial_differentiation_selection.setIdentity(DOF_,DOF_);
         double step_size_ = 0.001;
         double manipulability_index_plus, manipulability_index_minus, manipulability_index;
-        //计算机械臂的个条件数对q的便导数
-    for(int i = 0; i < 7; i++)
+        //计算机械臂的个条件数对q的偏导数
+    for(int i = 0; i < DOF_; i++)
         {
         manipulability_index_plus = this->manipulabilityIndex_position(q 
         + step_size_*partial_differentiation_selection.col(i));
@@ -1760,8 +1760,52 @@ namespace xj_dy_ns
         }
 
         //条件数的范围是1到无穷大，越小越好，但是这个算出来是倒数，范围为0到1，越大越好。
-        return manipulability_optimization_cmd;
+        //算出来给的力矩就是和偏导数算出来的符号相同
+        return nullspace_matrix_Nd_tau_cal(this->jacobi_,this->Lambda_now_,this->M_q_)*manipulability_optimization_cmd;
     }
+
+
+    /**
+     * @brief 讲关节限位更新到可操作度权重里
+     * 
+     * @param q 
+     * @param k_0 
+     * @return Eigen::VectorXd 
+     */
+    Eigen::VectorXd Robot_dynamic::manipulabilityOptimization_tor_cal_2(const Eigen::VectorXd& q, const double k_0)//讲关节限位更新到可操作度权重里
+    {
+        Eigen::VectorXd manipulability_optimization_cmd;
+        manipulability_optimization_cmd.setZero(DOF_);
+        Eigen::MatrixXd partial_differentiation_selection;
+        partial_differentiation_selection.setIdentity(DOF_,DOF_);//可操作度选择矩阵
+        double step_size_ = 0.001;
+        double manipulability_index_plus, manipulability_index_minus, manipulability_index;
+        //计算机械臂的个条件数对q的偏导数
+
+        Eigen::VectorXd err = (limit_max+limit_min)/2.0-q_now;
+        for (size_t i = 0; i < DOF_; i++)
+        {
+            double window =  (limit_max(i) - limit_min(i))/2;
+            partial_differentiation_selection(i,i)=(window - fabs(err(i)))/window;
+        }
+    for(int i = 0; i < DOF_; i++)
+        {
+        manipulability_index_plus = this->manipulabilityIndex_position(q 
+        + step_size_*partial_differentiation_selection.col(i));
+
+        manipulability_index_minus = manipulabilityIndex_position(q 
+        - step_size_ * partial_differentiation_selection.col(i));
+
+        manipulability_optimization_cmd(i) 
+        = k_0 * (manipulability_index_plus 
+        - manipulability_index_minus) / (2*step_size_);
+        }
+
+        //条件数的范围是1到无穷大，越小越好，但是这个算出来是倒数，范围为0到1，越大越好。
+        //算出来给的力矩就是和偏导数算出来的符号相同
+        return nullspace_matrix_Nd_tau_cal(this->jacobi_,this->Lambda_now_,this->M_q_)*manipulability_optimization_cmd;
+    }
+
 
     /**
      * @brief 返回到末端坐标系的雅可比
@@ -1800,7 +1844,9 @@ namespace xj_dy_ns
 
         // Eigen::Matrix<double,Eigen::Dynamic,6> A_inv = At*AAt_inv;
 
-        pseudo_inverse_jacobe = jacobe.transpose()*((jacobe*jacobe.transpose()).inverse());
+        // pseudo_inverse_jacobe = jacobe.transpose()*((jacobe*jacobe.transpose()).inverse());
+
+        pseudo_inverse_jacobe = jacobe.completeOrthogonalDecomposition().pseudoInverse();//右广义逆
         // printf("\033[1;34;40m 这里是Robot_dynamic::pseudo_inverse_jacobe_cal函数\n");//蓝色
         // std::cout<<"jacobe ="<<jacobe<<std::endl;
         // std::cout<<"At ="<<At<<std::endl;
