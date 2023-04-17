@@ -188,25 +188,6 @@ namespace xj_dy_ns
                                         double dt
                                         )
     {
-
-
-                //测试显示输入参数程序  \n");
-        // std::cout<<"Lanmbda_d ="<<Lanmbda_d<<std::endl;
-        // std::cout<<"D_d ="<<D_d<<std::endl;
-        // std::cout<<"K_d ="<<K_d<<std::endl;
-        // std::cout<<"inv_jacobe ="<<inv_jacobe<<std::endl;
-        // std::cout<<"jacobe ="<<jacobe<<std::endl;
-        // std::cout<<"d_jacobe ="<<  \n");
-        // std::cout<<"Lanmbda_d ="<<Lanmbda_d<<std::endl;
-        // std::cout<<"D_d ="<<D_d<<std::endl;
-        // std::cout<<"K_d ="<<K_d<<std::endl;
-        // std::cout<<"inv_jacobe ="<<inv_jacobe<<std::endl;
-        // std::cout<<"jacobe ="<<jax_d<<std::endl;
-        // std::cout<<"dx ="<<dx<<std::endl;
-        // std::cout<<"dq ="<<dq<<std::endl;
-        // std::cout<<"F_ext ="<<F_ext<<std::endl;
-        // std::cout<<"tor__C_G ="<<tor__C_G<<std::endl;
-        // printf(" \033[0m \n");
         
         Eigen::VectorXd tau_imp_cmd;
         tau_imp_cmd.setZero(tor__C_G.rows());//初始化补偿力矩的大小
@@ -216,16 +197,46 @@ namespace xj_dy_ns
         Eigen::MatrixXd k3 = jacobe*M_q.inverse()*jacobe.transpose();
         Eigen::MatrixXd Lambda_now = k3.inverse();
 
-        tau_imp_cmd = jacobe.transpose()* Lambda_now*(ddx_d-d_jacobe*dq)
-        + jacobe.transpose()*(Lambda_now*jacobe*M_q.inverse())*tor__C_G
-        + jacobe.transpose() * Lambda_now * Lanmbda_d.inverse() *(
-            D_d*(dx_d-dx)+
-            K_d*(x_err))
-        + jacobe.transpose()* F_d            //期望力加进去
-        + jacobe.transpose()
-                *(Lambda_now*Lanmbda_d.inverse() 
-                    - Eigen::Matrix<double,6,6>::Identity())
-                *(F_ext+F_d);  //受到的外力加进去
+
+        tau_imp_cmd = 
+        tor__C_G
+        +
+        jacobe.transpose()*( Lambda_now*(
+                            ddx_d
+                            -d_jacobe*dq
+                            )
+                            
+                            +Lambda_now * Lanmbda_d.inverse() *(
+                            D_d*(dx_d-dx)+
+                            K_d*(x_err)+
+                            F_d)//期望力加进去
+
+                            +
+                            (Lambda_now*Lanmbda_d.inverse() 
+                            - Eigen::Matrix<double,6,6>::Identity())
+                            *F_ext  //受到的外力加进去
+                            )
+        ;
+
+                 //测试显示输入参数程序  \n");
+        // std::cout<<"Lanmbda_d ="<<Lanmbda_d<<std::endl;
+        // std::cout<<"D_d ="<<D_d<<std::endl;
+        // std::cout<<"K_d ="<<K_d<<std::endl;
+        // std::cout<<"inv_jacobe ="<<inv_jacobe<<std::endl;
+        // std::cout<<"jacobe ="<<jacobe<<std::endl;
+        // std::cout<<"d_jacobe ="<<  \n");
+        // std::cout<<"Lanmbda_d ="<<Lanmbda_d<<std::endl;
+        // std::cout<<"Lanmbda_now ="<<Lambda_now<<std::endl;
+
+        // std::cout<<"D_d ="<<D_d<<std::endl;
+        // std::cout<<"K_d ="<<K_d<<std::endl;
+        // std::cout<<"inv_jacobe ="<<inv_jacobe<<std::endl;
+        // std::cout<<"jacobe ="<<jax_d<<std::endl;
+        // std::cout<<"dx ="<<dx<<std::endl;
+        // std::cout<<"dq ="<<dq<<std::endl;
+        // std::cout<<"F_ext ="<<F_ext<<std::endl;
+        // std::cout<<"tor__C_G ="<<tor__C_G<<std::endl;
+        // printf(" \033[0m \n");
 
         // tau_imp_cmd = k1*(ddx_d-d_jacobe*dq)
         // + tor__C_G
@@ -240,8 +251,8 @@ namespace xj_dy_ns
         Eigen::Matrix<double,12,1> X=Eigen::Matrix<double,12,1>::Zero();
 
         A.topRightCorner(6,6).setIdentity();
-        A.bottomLeftCorner(6,6)=-K_d*Lanmbda_d.inverse();
-        A.bottomRightCorner(6,6)=-D_d*Lanmbda_d.inverse();
+        A.bottomLeftCorner(6,6)=-Lanmbda_d.inverse()*K_d;
+        A.bottomRightCorner(6,6)=-Lanmbda_d.inverse()*D_d;
         
         B.bottomRows(6)=Lanmbda_d.inverse()*(F_ext+F_d);
 
@@ -281,17 +292,27 @@ namespace xj_dy_ns
     Eigen::Matrix<double,6,1> ImpedanceController::x_err_cal(Eigen::Matrix4d T_d,Eigen::Matrix4d T_now)
     {
         Eigen::Matrix3d R_err = T_d.topLeftCorner(3,3)*((T_now.topLeftCorner(3,3)).transpose());
-        double xita = acos((R_err.trace()-1)/2);//计算角度
-        // std::cout<<"xita="<<xita<<std::endl;
+        double tmp = (R_err.trace()-1.0f)/2.0f;
+        tmp=fmaxl(fminl(tmp,1.0f),-1.0f);
+        double xita=acos(tmp);
+
+        
+        std::cout<<"(R_err.trace()-1)/2="<<(R_err.trace()-1.0f)/2.0f<<std::endl;
+        std::cout<<"xita="<<xita<<std::endl;
         Eigen::Vector3d n = Eigen::Vector3d::Zero();
         n(0)=R_err(2,1)-R_err(1,2);
         n(1)=R_err(0,2)-R_err(2,0);
         n(2)=R_err(1,0)-R_err(0,1);
 
         //计算旋转轴
+
         n = n/(2*sin(xita));
         Eigen::Matrix<double,6,1> err = Eigen::Matrix<double,6,1>::Zero();
+        if(xita==0)
+        {err.bottomRows(3).setZero();}
+        else{
         err.bottomRows(3) = n*xita;
+        }
         err.topRows(3) = T_d.topRightCorner(3,1) - T_now.topRightCorner(3,1);
         
         //调试输出

@@ -1619,11 +1619,19 @@ namespace xj_dy_ns
 
 
         this->set_last_dq();//保存下上一次的关节角速度
+        if(this->DOF_>6)
+        {
         jacobe_pse_inv_ = this->pseudo_inverse_jacobe_cal(this->jacobi_);
-
+        }
+        else
+        {jacobe_pse_inv_=this->jacobi_.inverse();}
         this->Lambda_now_cal();
-         this->nullspace_jacobi_ =  nullspace_matrix_jacobi_cal(jacobe_pse_inv_,
-                                    jacobi_);
+        if(this->DOF_>6)
+        {
+            this->nullspace_jacobi_ =  nullspace_matrix_jacobi_cal(jacobe_pse_inv_,
+                            jacobi_);
+        }
+
     }
 
 
@@ -1962,13 +1970,17 @@ namespace xj_dy_ns
     Eigen::VectorXd Robot_dynamic::limit_optimiza_tor_cal(double kd)
     {
         // Eigen::VectorXd tor_tmp =this->M_q_* this->get_nullspace_matrix() *((limit_max+limit_min)/2-q_now);
-        Eigen::VectorXd err = (limit_max+limit_min)/2.0-q_now;
+        Eigen::VectorXd err = ((limit_max+limit_min)/2.0-q_now);
+        for (size_t i = 0; i < DOF_; i++)
+        {
+            err(i)=err(i)/((limit_max(i)-limit_min(i))*2);
+            err(i)=pow(err(i),3);
+        }
+        
         Eigen::VectorXd tor_tmp =nullspace_matrix_Nd_tau_cal(this->jacobi_,this->Lambda_now_,this->M_q_) *kd*err;
         // printf("\033[1;31;40m \n");
         // std::cout<< "零空间limit_max="<<limit_max<<std::endl;
         // std::cout<< "零空间limit_min="<<limit_min<<std::endl;
-
-
         // std::cout<< "零空间err="<<err<<std::endl;
         // std::cout<<"零空间jacobe_pse_inv_* jacobi_=" <<jacobi_*jacobe_pse_inv_<<std::endl;
         // printf("\033[0m");

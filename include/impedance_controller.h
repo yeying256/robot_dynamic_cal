@@ -14,6 +14,7 @@
 #include "include_common.h"
 #include "math_wx.h"
 
+
 namespace xj_dy_ns
 {
     class ImpedanceController
