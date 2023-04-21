@@ -21,9 +21,9 @@ namespace xj_dy_ns
     /**
      * @brief Construct a new mpc controller::mpc controller object
      * 
-     * @param Lambda_d 
-     * @param D_d 
-     * @param K_d 
+     * @param Lambda_d 期望惯量
+     * @param D_d 期望阻尼
+     * @param K_d 期望刚度
      * @param T 控制周期
      */
     MPC_controller::MPC_controller(Eigen::MatrixXd Lambda_d,Eigen::MatrixXd D_d,Eigen::MatrixXd K_d,double T)
@@ -34,9 +34,9 @@ namespace xj_dy_ns
     /**
      * @brief 使用线性状态方程初始化
      * 
-     * @param A 
-     * @param B 
-     * @param T 
+     * @param A 线性状态方程A
+     * @param B 线性状态方程B
+     * @param T 控制周期
      */
     void MPC_controller::init(Eigen::MatrixXd A,Eigen::MatrixXd B,double T)
     {
@@ -50,10 +50,10 @@ namespace xj_dy_ns
     /**
      * @brief 
      * 
-     * @param Lambda_d 
-     * @param D_d 
-     * @param K_d 
-     * @param T 
+     * @param Lambda_d 期望惯量
+     * @param D_d 期望阻尼
+     * @param K_d 期望刚度
+     * @param T 控制周期
      */
     void MPC_controller::impedance_init_A_B(Eigen::MatrixXd Lambda_d,Eigen::MatrixXd D_d,Eigen::MatrixXd K_d,double T)
     {
@@ -93,8 +93,8 @@ namespace xj_dy_ns
      * 
      * @param q 恒定状态权重参数
      * @param r 恒定输出权重参数
-     * @param N 
-     * @param X 
+     * @param N 预测步长
+     * @param X 当前状态
      * @return Eigen::VectorXd 
      */
     Eigen::VectorXd MPC_controller::u_MPC_cal_no_constrain(double q,double r,int N,Eigen::VectorXd X)
