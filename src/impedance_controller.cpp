@@ -297,8 +297,8 @@ namespace xj_dy_ns
         double xita=acos(tmp);
 
         
-        std::cout<<"(R_err.trace()-1)/2="<<(R_err.trace()-1.0f)/2.0f<<std::endl;
-        std::cout<<"xita="<<xita<<std::endl;
+        // std::cout<<"(R_err.trace()-1)/2="<<(R_err.trace()-1.0f)/2.0f<<std::endl;
+        // std::cout<<"xita="<<xita<<std::endl;
         Eigen::Vector3d n = Eigen::Vector3d::Zero();
         n(0)=R_err(2,1)-R_err(1,2);
         n(1)=R_err(0,2)-R_err(2,0);
