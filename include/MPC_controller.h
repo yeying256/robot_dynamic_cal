@@ -24,6 +24,8 @@ namespace xj_dy_ns
     ~MPC_controller();
 
     Eigen::VectorXd u_MPC_cal_no_constrain(double q,double r,int N,Eigen::VectorXd X);
+    Eigen::VectorXd u_MPC_cartesian_cal_no_constrain(Eigen::Vector4d q,Eigen::Vector2d r,int N,Eigen::VectorXd X);
+
     Eigen::MatrixXd K_MPC_cal_no_constrain(Eigen::MatrixXd Q,Eigen::MatrixXd R,int N);
   };
     

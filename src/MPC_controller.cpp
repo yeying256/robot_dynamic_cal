@@ -89,7 +89,7 @@ namespace xj_dy_ns
 
     
     /**
-     * @brief 
+     * @brief 通过下列参数计算输出
      * 
      * @param q 恒定状态权重参数
      * @param r 恒定输出权重参数
@@ -101,7 +101,9 @@ namespace xj_dy_ns
     {
         //状态权重
         Eigen::MatrixXd Q=q*Eigen::MatrixXd::Identity(A_dof_,A_dof_);
-        // Q.bottomRightCorner(A_dof_/2,A_dof_/2).setZero();
+        Q.bottomRightCorner(A_dof_/4,A_dof_/4).setZero();
+        Q.block(A_dof_/4,A_dof_/4,A_dof_/4,A_dof_/4).setZero();
+
         //输出权重
         Eigen::MatrixXd R=r*Eigen::MatrixXd::Identity(u_size_,u_size_);
         //求解K_MPC
@@ -116,6 +118,45 @@ namespace xj_dy_ns
         Eigen::VectorXd u=-K_MPC*X;
         return u;
     }
+
+    /**
+     * @brief 
+     * 
+     * @param q 状态权重矩阵，其中q(0)是位置跟踪，1是姿态跟踪，2是线速度跟踪，3是角速度跟踪
+     * @param r 输出权重矩阵，0是力输出，1是力矩输出
+     * @param N 预测步长
+     * @param X 状态
+     * @return Eigen::VectorXd 
+     */
+    Eigen::VectorXd MPC_controller::u_MPC_cartesian_cal_no_constrain(Eigen::Vector4d q,Eigen::Vector2d r,int N,Eigen::VectorXd X)
+    {
+        //状态权重
+        Eigen::MatrixXd Q=Eigen::MatrixXd::Identity(A_dof_,A_dof_);
+        Q.topLeftCorner(3,3) = q(0)* Eigen::MatrixXd::Identity(3,3);
+        Q.block(3,3,3,3)=q(1)* Eigen::MatrixXd::Identity(3,3);
+        Q.block(6,6,3,3)=q(2)* Eigen::MatrixXd::Identity(3,3);
+        Q.block(9,9,3,3)=q(3)* Eigen::MatrixXd::Identity(3,3);
+
+
+
+        //输出权重
+        Eigen::MatrixXd R=Eigen::MatrixXd::Identity(u_size_,u_size_);
+        R.topLeftCorner(3,3) = r(0)*Eigen::MatrixXd::Identity(3,3);
+        R.bottomRightCorner(3,3) = r(1)*Eigen::MatrixXd::Identity(3,3);
+
+        //求解K_MPC
+        Eigen::MatrixXd K_MPC=K_MPC_cal_no_constrain(Q,R,N);
+        //求解输出
+        // printf("\033[1;31;40m =   \n");
+        // std::cout<<"计算K_MPC = "<< K_MPC<<std::endl;
+        // std::cout<<"计算K_MPC 行= "<< K_MPC.rows()<<"列="<<K_MPC.cols()<<std::endl;
+        // std::cout<<"显示Q= "<< Q<<"R="<<R<<std::endl;
+
+        // printf(" \033[0m \n");
+        Eigen::VectorXd u=-K_MPC*X;
+        return u;
+    }
+
 
     /**
      * @brief 无约束MPC求解 K_MPC
