@@ -1,6 +1,7 @@
 #pragma once
 #include <Eigen/Eigen>
 #include <math.h>
+#include <iostream>
 
 namespace xj_dy_ns
 {
@@ -15,6 +16,7 @@ namespace xj_dy_ns
         //每一列都是不同带插值的变量的6个状态。
         Eigen::Matrix<double,Eigen::Dynamic,6> A_;
         bool flag_cal = false;
+        Eigen::VectorXd last_x_;
     public:
         Quintic_inter();
         Quintic_inter(double deltaT);

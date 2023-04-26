@@ -63,6 +63,7 @@ namespace xj_dy_ns
 
     void Quintic_inter::set_start_and_end_state(Eigen::VectorXd x0,Eigen::VectorXd x1)
     {
+        val_num_= x0.size();
         this->state_.setZero(6,val_num_);
         this->state_.row(0) = x0.transpose();
         state_.row(3) = x1.transpose();
@@ -74,6 +75,8 @@ namespace xj_dy_ns
         Eigen::Matrix<double,6,1> pow_t_;
 
         x_now.setZero(this->val_num_);
+        std::cout<<"state_="<<state_<<std::endl;
+
         if (!this->flag_cal)
         {
             printf("\033[1;31;40m  五次插值有bug,初始化参数不全 \033[0m \n");
@@ -86,7 +89,19 @@ namespace xj_dy_ns
         //     x_now(i) = A_*;
         // }
         x_now = A_*pow_t_;
+
+        if (t_now>=this->deltaT_)
+        {
+        x_now = last_x_;
+        }
+        else
+        {
+        x_now = A_*pow_t_;
+        }
+        last_x_=x_now;
         return x_now;
+        
+        
         
     }
 

@@ -1099,8 +1099,14 @@ namespace xj_dy_ns
     void Robot_dynamic::set_dq_now(Eigen::Matrix<double,Eigen::Dynamic,1> dq)//设置当前关节速度
     {
 
-        // this->dq_ = this->tor_filter(dq,100,0.001,&(this->dq_last_));
+        // this->dq_ = this->tor_filter(dq,30,0.001,&(this->dq_last_));
         this->dq_ = dq;
+        for(int i=0;i<this->DOF_;i++)
+        {
+            // if(fabs(dq_(i))<0.03 && fabs(dq_last_(i))<0.03)
+            // {dq_(i)=0;
+            // }
+        }
 
         
     }
@@ -1689,7 +1695,18 @@ namespace xj_dy_ns
      */
     Eigen::VectorXd Robot_dynamic::friction_cal()                     
     {
-        this->tor_friction_ = -(this->f_mu_.cwiseProduct(this->dq_) +  dq_.cwiseSign()*this->f_s_);
+        for (int i = 0; i < this->DOF_; i++)
+        {
+            if (fabs(dq_(i))<=0.01)
+            {
+                tor_friction_(i)=-dq_(i)*(f_s_(i)/0.01);
+            }
+            else{
+                this->tor_friction_(i) = -(this->f_mu_(i)* this->dq_(i)) +  ((dq_(i) > 0) ? 1 : ((dq_(i) < 0) ? -1 : 0))*this->f_s_(i);
+            }
+
+        }
+        
         return tor_friction_;
     }
 
@@ -1702,9 +1719,23 @@ namespace xj_dy_ns
     Eigen::VectorXd Robot_dynamic::friction_cal(Eigen::VectorXd dq)  
     {
         Eigen::VectorXd tor_friction;
-        tor_friction = -(this->f_mu_.cwiseProduct(dq) +  dq.cwiseSign()*this->f_s_);
+        tor_friction = -(this->f_mu_.cwiseProduct(dq) +  dq.cwiseSign().cwiseProduct( this->f_s_));
         return tor_friction;
     }
+
+    /**
+     * @brief 返回摩擦力的补偿值
+     * 
+     * @param tau 
+     * @return Eigen::VectorXd 返回补偿值
+     */
+    Eigen::VectorXd Robot_dynamic::friction_cal_useTaucmd(Eigen::VectorXd tau)
+    {
+        Eigen::VectorXd tor_friction_comp;
+        tor_friction_comp=tau.cwiseSign().cwiseProduct(this->f_s_);
+        return tor_friction_comp;
+    }
+
 
     /**
      * @brief 计算可操作度

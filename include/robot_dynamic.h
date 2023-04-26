@@ -192,6 +192,8 @@ namespace xj_dy_ns
         void set_friction_param(Eigen::VectorXd f_s,Eigen::VectorXd f_mu);
         Eigen::VectorXd friction_cal();//内部参数计算
         Eigen::VectorXd friction_cal(Eigen::VectorXd dq);//外部参数计算
+        Eigen::VectorXd friction_cal_useTaucmd(Eigen::VectorXd tau);//外部参数计算
+
         double manipulabilityIndex_position();//计算内部可操作度
         double manipulabilityIndex_position(Eigen::VectorXd q);//计算内部可操作度
         Eigen::VectorXd manipulabilityOptimization_tor_cal(const Eigen::VectorXd& q, const double k_0);
