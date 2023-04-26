@@ -83,7 +83,7 @@ namespace xj_dy_ns
             return x_now;
         }
         pow_t_<<
-        1,t_now,pow(t_now,2),pow(t_now,2),pow(t_now,3),pow(t_now,4),pow(t_now,5);
+        1,t_now,pow(t_now,2),pow(t_now,3),pow(t_now,4),pow(t_now,5);
         // for (int i = 0; i < this->val_num_; i++)
         // {
         //     x_now(i) = A_*;
