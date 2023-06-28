@@ -127,6 +127,7 @@ namespace xj_dy_ns
 
         limit_max.setZero(dof);
         limit_min.setZero(dof);
+        T_flange_.setIdentity();
 
     }
 
@@ -510,7 +511,7 @@ namespace xj_dy_ns
         // cout<<"T_ = "<< T_.at(i)<<endl;
 
         }
-        this->_0T_tool = _0T_i[DOF_-1]*this->T_tool_;//计算了从0到末端执行器的变换矩阵
+        this->_0T_tool = _0T_i[DOF_-1]*this->T_flange_ *this->T_tool_;//计算了从0到末端执行器的变换矩阵
 
     }
 
@@ -834,7 +835,7 @@ namespace xj_dy_ns
                 {
                     Ti_tool =Ti_tool*this->T_.at(j);
                 }
-                Ti_tool = Ti_tool*this->T_tool_;//乘上末端的工具坐标系变换
+                Ti_tool = Ti_tool*this->T_flange_ * this->T_tool_;//乘上末端的工具坐标系变换
                 Eigen::Matrix<double,3,1> _iPi_tool= Ti_tool.topRightCorner(3,1);
                 Eigen::Vector3d zi_cross__iPi_tool = zi.cross(_iPi_tool);
                 Eigen::Matrix<double,3,1> J02_i = this->get_0R(i)*zi_cross__iPi_tool;//雅可比矩阵1到3行，第i列
@@ -874,7 +875,7 @@ namespace xj_dy_ns
             {
                 Ti_tool =Ti_tool*this->T_.at(j);
             }
-            Ti_tool = Ti_tool*this->T_tool_;//乘上末端的工具坐标系变换
+            Ti_tool = Ti_tool*this->T_flange_*this->T_tool_;//乘上末端的工具坐标系变换
             Eigen::Matrix<double,3,1> _iPi_tool= Ti_tool.topRightCorner(3,1);//这个意思是i坐标系原点到tool的向量，在第i个坐标系下表示
             // Eigen::Matrix<double,3,1> temp1=this->get_vel_w_iter().topLeftCorner(3,1).eval()-v_[i];//如果不提前算出来，直接弄到表达式里会报错
             Eigen::Matrix<double,3,1> temp1=this->get_vel_w_jacobe().topLeftCorner(3,1).eval()-v_[i];//如果不提前算出来，直接弄到表达式里会报错
@@ -922,7 +923,7 @@ namespace xj_dy_ns
             {
                 Ti_tool =Ti_tool*T_all.at(j);
             }
-            Ti_tool = Ti_tool*this->T_tool_;//乘上末端的工具坐标系变换
+            Ti_tool = Ti_tool*this->T_flange_*this->T_tool_;//乘上末端的工具坐标系变换
             Eigen::Matrix<double,3,1> _iPi_tool= Ti_tool.topRightCorner(3,1);
             Eigen::Matrix<double,3,1> J02_i = _0R_all[i]*zi.cross(_iPi_tool);//雅可比矩阵1到3行，第i列
             Jacobi.block<3,1>(0,i) = J02_i;
@@ -944,7 +945,7 @@ namespace xj_dy_ns
 
     /** 
      * @brief 设置工具坐标系
-     * @param T_tool 工具刀尖处相对于最后一个坐标系的相对位置
+     * @param T_tool 工具刀尖处相对于法兰坐标系的位姿
      * @return  无
      */
     void Robot_dynamic::set_tool(Eigen::Matrix<double,4,4> T_tool)
@@ -2030,44 +2031,86 @@ namespace xj_dy_ns
         // printf("\033[0m");
         return N_d;
     }
+
+
+    /**
+     * @brief 设置法兰坐标系，机器人需要设置一个法兰坐标系，因为根据MDH方法建模，
+     * 机器人在不安装任何末端执行器的情况下，末端和最后一个坐标系不重合。
+     * 此函数只是设置一下，并不进行计算，因为必须有法兰坐标系，所以不进行标志位判断
+     * 如果没有，则认为法兰坐标系与最后一个坐标系重合,在resize_param(dof)函数中进行初始化
+     * 
+     * @param T_flange 
+     */
+    void Robot_dynamic::set_flange_T(Eigen::Matrix4d T_flange)
+    {
+        this->T_flange_=T_flange;
+        initflag_if_set_flange_=true;
+    }
+
+
+
+
+
+
+
+
+
     /**
      * @brief 通过末端执行器在最后一个坐标系中的动力学参数来更新最后一个连杆的动力学参数
-     * 注意，使用此函数之前，一定要讲末端执行器的动力学参数转化为最后一个坐标系下的表达
+     * 注意，输入参数是在法兰坐标系下的表达
      * 
-     * @param Pc_eff 末端执行器在最后一个坐标系下的质心
+     * @param Pc_eff 末端执行器在法兰坐标系下的质心
      * @param m_eff 末端执行器的质量
-     * @param Ic_eff 末端执行器在最后一个坐标系下表达的相对质心的转动惯量
+     * @param Ic_eff 末端执行器在法兰坐标系下表达的相对质心的转动惯量
      */
     void Robot_dynamic::set_endeffector_dynamic_param(Eigen::Matrix<double,3,1> Pc_eff,
                                                         double m_eff,
                                                         Eigen::Matrix<double,3,3> Ic_eff)
     {
-        this->Pc_eff_=Pc_eff;
-        this->m_eff_=m_eff;
-        this->Ic_eff_=Ic_eff;
-        printf("\033[1;32;40m  设置末端执行器动力学参数成功    \n");
-        printf("\033[0m");
-        Eigen::Vector3d Pc_old=this->Pc[DOF_-1];//最后一个关节的质心向量
-        double m_old=m_[DOF_-1];
-        Eigen::Matrix3d Ic_old=Ic_[DOF_-1];
+        if(initflag_if_set_flange_ == true)
+        {
+            this->Pc_eff_=Pc_eff;
+            Eigen::Matrix<double,4,1> vector_Pc_eff;
+            vector_Pc_eff<<Pc_eff,1;//变成向量，结尾为1，进行法兰的坐标变换
+            vector_Pc_eff = this->T_flange_ * vector_Pc_eff;
+            Eigen::Vector3d Pc_eff_dof_1 = vector_Pc_eff.topRows(3);//将质心坐标变换为最后一个坐标系（不是法兰）的表达
+            this->m_eff_=m_eff;
+            this->Ic_eff_=Ic_eff;
+            printf("\033[1;32;40m  设置末端执行器动力学参数成功    \n");
+            printf("\033[0m");
+            Eigen::Vector3d Pc_old=this->Pc[DOF_-1];//最后一个关节的质心向量
+            double m_old=m_[DOF_-1];
+            Eigen::Matrix3d Ic_old=Ic_[DOF_-1];
 
-        m_[DOF_-1]=m_eff+m_old;
-        Pc[DOF_-1]= (m_old*Pc_old+m_eff*Pc_eff)/(m_eff+m_old);//计算新的质心
+            m_[DOF_-1]=m_eff+m_old;
+            Pc[DOF_-1]= (m_old*Pc_old+m_eff*Pc_eff_dof_1)/(m_eff+m_old);//计算新的质心
 
-        Eigen::Vector3d Pc_new2Cold=Pc_old-Pc[DOF_-1];//新质心坐标系中的老Lambda_d_lqr_连杆质心位置
-        Eigen::Vector3d Pc_new2Ceff=Pc_eff-Pc[DOF_-1];//新质心坐标系中的老末端执行器质心的位置
-        Ic_[DOF_-1]=Ic_old+m_old*(Pc_new2Cold.transpose()*Pc_new2Cold*Eigen::Matrix3d::Identity()-Pc_new2Cold*Pc_new2Cold.transpose()) //老连杆质心在新质心坐标系下的表达
-        +Ic_eff+m_eff*(Pc_new2Ceff.transpose()*Pc_new2Ceff*Eigen::Matrix3d::Identity()-Pc_new2Ceff*Pc_new2Ceff.transpose());//加上老末端执行器质心在新质心坐标系下的表达
-
+            Eigen::Vector3d Pc_new2Cold=Pc_old-Pc[DOF_-1];//新质心坐标系中的老Lambda_d_lqr_连杆质心位置
+            Eigen::Vector3d Pc_new2Ceff=Pc_eff_dof_1-Pc[DOF_-1];//新质心坐标系中的老末端执行器质心的位置
+            Ic_[DOF_-1]=Ic_old+m_old*(Pc_new2Cold.transpose()*Pc_new2Cold*Eigen::Matrix3d::Identity()-Pc_new2Cold*Pc_new2Cold.transpose()) //老连杆质心在新质心坐标系下的表达
+            +Ic_eff+m_eff*(Pc_new2Ceff.transpose()*Pc_new2Ceff*Eigen::Matrix3d::Identity()-Pc_new2Ceff*Pc_new2Ceff.transpose());//加上老末端执行器质心在新质心坐标系下的表达
+        }
+        else
+        {
+            printf("\033[1;32;40m  错误，未初始化法兰参数 \n");
+            printf("\033[0m");
+        }
     }
 
-
+    /**
+     * @brief 通过力矩传感器计算外力
+     * 
+     * @param jacobi_r_inv 
+     * @param tau_ext 
+     * @return Eigen::Matrix<double,6,1> 
+     */
     Eigen::Matrix<double,6,1> Robot_dynamic::F_ext_cal_by_tau_ext(Eigen::MatrixXd jacobi_r_inv,Eigen::VectorXd tau_ext)
     {
         Eigen::Matrix<double,6,1> F_ext;
         F_ext = jacobi_r_inv.transpose()*tau_ext;
         return F_ext;
     }
+
 
     Eigen::Matrix<double,6,1> Robot_dynamic::F_ext_cal_inner(Eigen::VectorXd tau_measure)
     {

@@ -78,6 +78,11 @@ namespace xj_dy_ns
 
     bool init_size_flag=false;
     int DOF_ = 0;
+
+    Eigen::Matrix4d T_flange_;
+    bool initflag_if_set_flange_ = false;
+
+
     public:
         Robot_dynamic();//需要调用resize_param函数来初始化大小
         Robot_dynamic(const std::string& url,const int& DOF);
@@ -219,6 +224,8 @@ namespace xj_dy_ns
                                             Eigen::Matrix<double,3,3> Ic_eff);//设置末端执行器的动力学参数
         static Eigen::Matrix<double,6,1> F_ext_cal_by_tau_ext(Eigen::MatrixXd jacobi_r_inv,Eigen::VectorXd tau_ext);
         Eigen::Matrix<double,6,1> F_ext_cal_inner(Eigen::VectorXd tau_measure);
+
+        void set_flange_T(Eigen::Matrix4d T_flange);
 
 
     //         Eigen::Matrix<double,3,1> Pc_eff_;//末端执行器质心向量
