@@ -227,6 +227,9 @@ namespace xj_dy_ns
 
         void set_flange_T(Eigen::Matrix4d T_flange);
 
+        //获得关节空间下的惯性矩阵
+        Eigen::Matrix<double,Eigen::Dynamic,Eigen::Dynamic> getMq_now();
+
 
     //         Eigen::Matrix<double,3,1> Pc_eff_;//末端执行器质心向量
     // double m_eff_;//末端执行器质量

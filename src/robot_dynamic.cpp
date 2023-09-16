@@ -1924,6 +1924,16 @@ namespace xj_dy_ns
     }
 
     /**
+     * @brief 返回Mq关节空间的惯性矩阵
+     * 
+     * @return Eigen::Matrix<double,Eigen::Dynamic,Eigen::Dynamic> 
+     */
+    Eigen::Matrix<double,Eigen::Dynamic,Eigen::Dynamic> Robot_dynamic::getMq_now()
+    {
+        return this->M_q_;
+    }
+
+    /**
      * @brief 返回当前笛卡尔坐标系下的惯性矩阵Lambda
      * 
      * @return Eigen::Matrix<double,6,6> 

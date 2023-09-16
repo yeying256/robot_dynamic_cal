@@ -86,6 +86,31 @@ namespace xj_dy_ns
                                         double dt
                                         );
 
+
+
+        static Eigen::VectorXd tau_impedance_cal_axis(Eigen::Matrix<double,6,6> Lanmbda_d,
+                                        Eigen::Matrix<double,6,6> D_d,
+                                        Eigen::Matrix<double,6,6> K_d,
+                                        Eigen::MatrixXd M_q,
+                                        Eigen::Matrix<double,6,Eigen::Dynamic> jacobe,
+                                        Eigen::Matrix<double,6,Eigen::Dynamic> d_jacobe,
+                                        Eigen::Matrix4d T_d,
+                                        Eigen::Matrix<double,3,1> dx_d,
+                                        Eigen::Matrix3d dR_d,
+                                        Eigen::Matrix<double,3,1> ddx_d,
+                                        Eigen::Matrix3d ddR_d,
+                                        Eigen::Matrix<double,6,1> F_ext,
+                                        Eigen::Matrix<double,6,1> F_d,
+                                        Eigen::VectorXd tor__C_G,
+                                        Eigen::Matrix<double,3,1> dx,
+                                        Eigen::VectorXd dq,
+                                        Eigen::Matrix4d T_now,
+                                        Eigen::Matrix<double,6,1> &xr_err,
+                                        Eigen::Matrix<double,6,1> &dxr_err,
+                                        Eigen::Ref<Eigen::MatrixXd> derr_new,
+                                        double dt
+                                        );
+
         //这个是目标减去当前位姿态来返回笛卡尔空间下的位置误差和轴角误差
         static Eigen::Matrix<double,6,1> x_err_cal(Eigen::Matrix4d T_d,Eigen::Matrix4d T_now);
         

@@ -191,8 +191,8 @@ namespace xj_dy_ns
         
         Eigen::VectorXd tau_imp_cmd;
         tau_imp_cmd.setZero(tor__C_G.rows());//初始化补偿力矩的大小
-        Eigen::MatrixXd k1 = M_q*inv_jacobe;
-        Eigen::MatrixXd k2 = k1*Lanmbda_d.inverse();
+        // Eigen::MatrixXd k1 = M_q*inv_jacobe;
+        // Eigen::MatrixXd k2 = k1*Lanmbda_d.inverse();
 
         Eigen::MatrixXd k3 = jacobe*M_q.inverse()*jacobe.transpose();
         Eigen::MatrixXd Lambda_now = k3.inverse();
@@ -255,6 +255,183 @@ namespace xj_dy_ns
         A.bottomRightCorner(6,6)=-Lanmbda_d.inverse()*D_d;
         
         B.bottomRows(6)=Lanmbda_d.inverse()*(F_ext+F_d);
+
+
+        X.topRows(6)=xr_err;
+        X.bottomRows(6) = dxr_err;
+
+        // printf("\033[1;32;40m test1  \n");
+        // std::cout<<"X="<<X<<std::endl;
+        // std::cout<<"A="<<A<<std::endl;
+        // std::cout<<"B="<<B<<std::endl;
+
+        // printf(" \033[0m \n");
+
+        X = math_wx::Runge_Kutta_itr(A,B,X,dt);
+
+        xr_err = X.topRows(6);//xr-xd
+        dxr_err = X.bottomRows(6);
+
+        // printf("\033[1;32;40m xr_err =   \n");
+        // std::cout<<xr_err<<std::endl;
+        // std::cout<<"dxr_err:"<<dxr_err<<std::endl;
+            
+        // printf(" \033[0m \n");
+
+        return tau_imp_cmd;
+    }
+
+
+    // void math_wx::Cal_Axis_Angle_Jo_g(Eigen::MatrixXd R,
+    //                         Eigen::MatrixXd dq,
+    //                         Eigen::MatrixXd J,
+    //                         Eigen::MatrixXd dJ,
+    //                         Eigen::MatrixXd Rd,
+    //                         Eigen::MatrixXd d_Rd,
+    //                         Eigen::MatrixXd d2_Rd,
+
+
+    Eigen::VectorXd ImpedanceController::tau_impedance_cal_axis(Eigen::Matrix<double,6,6> Lanmbda_d,
+                                        Eigen::Matrix<double,6,6> D_d,
+                                        Eigen::Matrix<double,6,6> K_d,
+                                        Eigen::MatrixXd M_q,
+                                        Eigen::Matrix<double,6,Eigen::Dynamic> jacobe,
+                                        Eigen::Matrix<double,6,Eigen::Dynamic> d_jacobe,
+                                        Eigen::Matrix4d T_d,
+                                        Eigen::Matrix<double,3,1> dx_d,
+                                        Eigen::Matrix3d dR_d,
+                                        Eigen::Matrix<double,3,1> ddx_d,
+                                        Eigen::Matrix3d ddR_d,
+                                        Eigen::Matrix<double,6,1> F_ext,
+                                        Eigen::Matrix<double,6,1> F_d,
+                                        Eigen::VectorXd tor__C_G,
+                                        Eigen::Matrix<double,3,1> dx,
+                                        Eigen::VectorXd dq,
+                                        Eigen::Matrix4d T_now,
+                                        Eigen::Matrix<double,6,1> &xr_err,
+                                        Eigen::Matrix<double,6,1> &dxr_err,
+                                        Eigen::Ref<Eigen::MatrixXd> derr_new,
+                                        double dt
+                                        )
+    {
+        
+        Eigen::VectorXd tau_imp_cmd;
+        int dof = tor__C_G.rows();
+        tau_imp_cmd.setZero(dof);//初始化补偿力矩的大小
+        Eigen::Matrix3d R_now=T_now.topLeftCorner(3,3);
+        Eigen::Matrix3d R_d=T_d.topLeftCorner(3,3);
+        Eigen::Matrix<double,6,1> err = x_err_cal(T_d,T_now);
+
+        
+        // Eigen::MatrixXd k1 = M_q*inv_jacobe;
+        // Eigen::MatrixXd k2 = k1*Lanmbda_d.inverse();
+
+        // Eigen::MatrixXd k3 = jacobe*M_q.inverse()*jacobe.transpose();
+        // Eigen::MatrixXd Lambda_now = k3.inverse();
+        Eigen::MatrixXd out_Jo,out_d_Jo,J_new,dJ_new;
+        Eigen::VectorXd out_g,out_dg;
+        Eigen::Matrix<double,6,1> d_err_new;
+        out_Jo.resize(3,dof);
+        out_d_Jo.resize(3,dof);
+        out_g.resize(3);
+        out_dg.resize(3);
+
+        Eigen::Matrix<double,3,3> A_lambda;
+        math_wx::Cal_Axis_Angle_Jo_g(R_now,dq,jacobe.bottomRows(3),d_jacobe.bottomRows(3),R_d,dR_d,ddR_d,out_Jo,out_d_Jo,out_g,out_dg,A_lambda);
+
+        Eigen::Matrix<double,6,6> A_new = Eigen::Matrix<double,6,6>::Identity();
+        A_new.bottomRightCorner(3,3)=A_lambda;
+        //重新定义轴角的jacobi 但是老jacobi还有用
+        J_new.resize(6,dof);
+        dJ_new.resize(6,dof);
+        J_new.topRows(3) = jacobe.topRows(3);
+        J_new.bottomRows(3) = out_Jo;
+        dJ_new.topRows(3)=d_jacobe.topRows(3);
+        dJ_new.bottomRows(3) = out_d_Jo;
+
+        Eigen::MatrixXd k2=J_new*M_q.inverse()*jacobe.transpose();
+        Eigen::MatrixXd k1=k2.inverse();
+        Eigen::MatrixXd lambda_d_new=Lanmbda_d*A_new.inverse();
+
+        // Eigen::MatrixXd lambda_d_inv=Lanmbda_d.inverse();
+        Eigen::MatrixXd lambda_d_inv=lambda_d_new.inverse();
+
+
+        // lambda_d_inv = k2;
+        Eigen::Matrix<double,6,1> a1;
+        a1.topRows(3)=ddx_d;
+        a1.bottomRows(3)=-out_dg;
+
+
+        d_err_new.topRows(3)=dx_d-dx;
+        d_err_new.bottomRows(3)=-out_Jo*dq-out_g;
+
+        derr_new=d_err_new;
+        
+
+
+        tau_imp_cmd = 
+        tor__C_G
+        +
+        jacobe.transpose() * (k1*a1
+        -k1*dJ_new*dq
+        +(k1*lambda_d_inv-Eigen::Matrix<double,6,6>::Identity())*F_ext
+        +k1*lambda_d_inv*(
+            D_d*(d_err_new)
+            +K_d*err
+            +F_d
+            )
+        )
+        ;
+
+                //  printf("测试显示输入参数程序  \n");
+
+        // std::cout<<"k1 ="<<k1<<std::endl;
+        // std::cout<<"k2 ="<<k2<<std::endl;
+        // std::cout<<"jacobe ="<<jacobe<<std::endl;
+
+        
+
+        
+        // std::cout<<"J_new ="<<J_new<<std::endl;
+        
+
+        if (isnan(tau_imp_cmd[0]))
+        {
+            std::cout<<"tau_imp_cmd ="<<tau_imp_cmd<<std::endl;
+
+        }
+        
+
+
+        
+
+        // printf(" \033[0m \n");
+
+        // tau_imp_cmd = k1*(ddx_d-d_jacobe*dq)
+        // + tor__C_G
+        // + k2*(
+        //     D_d*(dx_d-dx)+
+        //     K_d*(x_err))
+        // + jacobe.transpose()*F_d            //期望力加进
+        // + (k2 - jacobe.transpose())*(F_ext+F_d);  //受到的外力加进去
+        
+        Eigen::Matrix<double,12,12> A=Eigen::Matrix<double,12,12>::Zero();
+        Eigen::Matrix<double,12,1> B=Eigen::Matrix<double,12,1>::Zero();
+        Eigen::Matrix<double,12,1> X=Eigen::Matrix<double,12,1>::Zero();
+
+        A.topRightCorner(6,6).setIdentity();
+
+        // lambda_d_new;
+        A.bottomLeftCorner(6,6)=-Lanmbda_d.inverse()*K_d;
+        A.bottomRightCorner(6,6)=-Lanmbda_d.inverse()*D_d;
+        
+        B.bottomRows(6)=Lanmbda_d.inverse()*(F_ext+F_d);
+
+        // A.bottomLeftCorner(6,6)=-lambda_d_new.inverse()*K_d;
+        // A.bottomRightCorner(6,6)=-lambda_d_new.inverse()*D_d;
+        
+        // B.bottomRows(6)=lambda_d_new.inverse()*(F_ext+F_d);
 
 
         X.topRows(6)=xr_err;
