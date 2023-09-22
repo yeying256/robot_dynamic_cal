@@ -138,6 +138,7 @@ add_library(robot_dynamic_cal
   src/OVI_Controller.cpp
   src/mean_filter.cpp
   src/MPC_controller.cpp
+  src/agv_turn_wheel.cpp
 )
 
 # add_dependencies(robot_dynamic_cal ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
