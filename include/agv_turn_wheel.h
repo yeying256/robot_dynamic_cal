@@ -10,7 +10,7 @@ namespace xj_dy_ns
     class agv_turn_wheel
     {
     private:
-    double SinPhi_,CosPhi_,B_,L_,R_;
+    double SinPhi_,CosPhi_,B_,L_,R_,Phi_;
         
 
 //           lr: 1
