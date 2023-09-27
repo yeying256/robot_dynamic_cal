@@ -12,7 +12,7 @@
 
 #include "agv_turn_wheel.h"
 
-#define OLD_VISION
+// #define OLD_VISION
 
 
 namespace xj_dy_ns
@@ -70,108 +70,61 @@ namespace xj_dy_ns
      * @param Wheel_Drive_Omega 传出参数，行走电机角速度
      * @param Wheel_Steer_Omega 传出参数，转向电机角速度
      * @param Wheel_Steer_Alpha 传入参数，转向电机的当前角度
-     * @param xyw 传入参数，机器人指令速度
+     * @param Vxyw_cmd 传入参数，机器人指令速度
      */
-    void agv_turn_wheel::Steer_Wheel_Kinematics(Eigen::Ref<Eigen::Vector2d> Wheel_Drive_Omega,
-	                        Eigen::Ref<Eigen::Vector2d> Wheel_Steer_Omega,
+    void agv_turn_wheel::Steer_Wheel_Kinematics(Eigen::Ref<Eigen::Vector2d> Drive,
+	                        Eigen::Ref<Eigen::Vector2d> Turn,
 
-							Eigen::Vector2d Wheel_Steer_Alpha,
-							Eigen::Vector3d xyw
+							Eigen::Vector2d Alpha,
+							Eigen::Vector3d Vxyw_cmd
 							)
     {
 
-        double Vx = xyw(0);
-        double Vy = xyw(1);
-        double Omega = xyw(2);
         double B=this->B_;
         double L=this->L_;
         double Phi = this->Phi_;
         double R=R_;
-
-
-        
-
-
-        double Alpha_1 = Wheel_Steer_Alpha[0];
-        double Alpha_2 = Wheel_Steer_Alpha[1];
         
 
         #ifndef OLD_VISION
 
-        while(Alpha_1>2*M_PI)
-        {
-            Alpha_1-=2*M_PI;
-        }
-
-        while(Alpha_1<-2*M_PI)
-        {
-            Alpha_1+=2*M_PI;
-        }
-
-        while(Alpha_2>2*M_PI)
-        {
-            Alpha_2-=2*M_PI;
-        }
-
-        while(Alpha_2<-2*M_PI)
-        {
-            Alpha_2+=2*M_PI;
-        }
-
-
         
-        Wheel_Drive_Omega(0)=(-sinf(Wheel_Steer_Alpha[0])*xyw(0) 
-        + cosf(Wheel_Steer_Alpha[0])*xyw(1) 
-        + xyw(2) *L_ * (SinPhi_*sinf(Wheel_Steer_Alpha[0]) + CosPhi_*cosf(Wheel_Steer_Alpha[0])))/(float)R_;
-        // Wheel_Steer_Omega[0]=(-cosf(Wheel_Steer_Alpha[0])*xyw(0) 
-        // - sinf(Wheel_Steer_Alpha[0])*xyw(1) 
-        // + xyw(2) * (B_ - (L_ * (CosPhi_*sinf(Wheel_Steer_Alpha[0]) - SinPhi_*cosf(Wheel_Steer_Alpha[0])))))/(float)B_;
-        Wheel_Drive_Omega[1]=(-sinf(Wheel_Steer_Alpha[1])*xyw(0) 
-        + cosf(Wheel_Steer_Alpha[1])*xyw(1) 
-        - xyw(2) * L_ * (SinPhi_*sinf(Wheel_Steer_Alpha[1]) + CosPhi_*cosf(Wheel_Steer_Alpha[1])))/(float)R_;
-        // Wheel_Steer_Omega[1]=(-cosf(Wheel_Steer_Alpha[1])*xyw(0) 
-        // - sinf(Wheel_Steer_Alpha[1])*xyw(1) 
-        // + xyw(2) * (B_ - (L_ * (SinPhi_*cosf(Wheel_Steer_Alpha[1]) - CosPhi_*sinf(Wheel_Steer_Alpha[1])))))/(float)B_;
+
+        Drive(0) = ((-sin(Alpha[0])*Vxyw_cmd(0)) + cos(Alpha[0])*Vxyw_cmd(1) + Vxyw_cmd(2)*    L*cos(Phi-Alpha[0]))  /R;
+        Drive(1) = ((-sin(Alpha[1])*Vxyw_cmd(0)) + cos(Alpha[1])*Vxyw_cmd(1) - Vxyw_cmd(2)*    L*cos(Phi-Alpha[1]))  /R;
+
 
         double Steer_Omega_1_Vx,Steer_Omega_1_Vy,Steer_Omega_2_Vx,Steer_Omega_2_Vy,Steer_Omega_1_Omega,Steer_Omega_2_Omega;
-        Steer_Omega_1_Vx=(-cos(Alpha_1)*Vx);
-        Steer_Omega_1_Vy=(-sin(Alpha_1)*Vy);
-        Steer_Omega_2_Vx=(-cos(Alpha_2)*Vx);
-        Steer_Omega_2_Vy=(-sin(Alpha_2)*Vy);
+        Steer_Omega_1_Vx=(-cos(Alpha[0])*Vxyw_cmd(0));
+        Steer_Omega_1_Vy=- sin(Alpha[0])*Vxyw_cmd(1);
+        Steer_Omega_2_Vx=(-cos(Alpha[1])*Vxyw_cmd(0));
+        Steer_Omega_2_Vy=- sin(Alpha[1])*Vxyw_cmd(1);
 
-        Steer_Omega_1_Omega = fabs(Omega)*(B-(L*sin(Alpha_1-Phi)));
-        Steer_Omega_2_Omega = fabs(Omega)*(B+(L*sin(Alpha_2-Phi)));
+        std::vector<Eigen::Vector2d> vector_alpha;
+        vector_alpha.resize(2);
+        vector_alpha[0]<< -sin(Alpha[0]),cos(Alpha[0]);
+        vector_alpha[1]<< -sin(Alpha[1]),cos(Alpha[1]);
 
 
 
-        if((xyw(0) >0)&&(0<Alpha_1)&&(Alpha_1<3.1415926535))
+
+        if(vector_alpha[0].dot(Vxyw_cmd.topRows(2))<0)
+        {
             Steer_Omega_1_Vx=-Steer_Omega_1_Vx;
-        else if((Vx<0)&&(3.1415926535<Alpha_1))
-            Steer_Omega_1_Vx=-Steer_Omega_1_Vx;
-        if((Vy>0)&&(1.5707963267948966192313216916398<Alpha_1)&&(Alpha_1<4.7123889803846898576939650749193))
-            Steer_Omega_1_Vy=-Steer_Omega_1_Vy;
-        else if((Vy<0)&&((Alpha_1<1.5707963267948966192313216916398)||(Alpha_1>4.7123889803846898576939650749193)))
             Steer_Omega_1_Vy=-Steer_Omega_1_Vy;
 
-        if((Vx>0)&&(0<Alpha_2)&&(Alpha_2<3.1415926535))
+        }
+
+        if (vector_alpha[1].dot(Vxyw_cmd.topRows(2))<0)
+        {
             Steer_Omega_2_Vx=-Steer_Omega_2_Vx;
-        else if((Vx<0)&&(3.1415926535<Alpha_2))
-            Steer_Omega_2_Vx=-Steer_Omega_2_Vx;
-        if((Vy>0)&&(1.5707963267948966192313216916398<Alpha_2)&&(Alpha_2<4.7123889803846898576939650749193))
             Steer_Omega_2_Vy=-Steer_Omega_2_Vy;
-        else if((Vy<0)&&((Alpha_2<1.5707963267948966192313216916398)||(Alpha_2>4.7123889803846898576939650749193)))
-            Steer_Omega_2_Vy=-Steer_Omega_2_Vy;
+        }
 
-
-        
-
-
+        Turn(0)  = ( Steer_Omega_1_Vx+Steer_Omega_1_Vy + abs(Vxyw_cmd(2))*(B-(L*sin(Alpha[0]-Phi))))/B;
+        Turn(1)  = ( Steer_Omega_2_Vx+Steer_Omega_2_Vy + abs(Vxyw_cmd(2))*(B+(L*sin(Alpha[1]-Phi))))/B;
 
         
-        
-        double Steer_Omega_1 = (Steer_Omega_1_Vx + Steer_Omega_1_Vy + Steer_Omega_1_Omega)/B;
-        double Steer_Omega_2 = (Steer_Omega_2_Vx + Steer_Omega_2_Vy + Steer_Omega_2_Omega)/B;
-
 
         #else
 
@@ -210,6 +163,115 @@ namespace xj_dy_ns
 
         #endif
 
+    }
+
+    /**
+     * @brief 正向运动学
+     * 
+     * @param Wheel_Drive_Omega 两个驱动轮的角速度 
+     * @param Wheel_Steer_Omega 两个转向电机的角速度
+     * @param Wheel_Steer_Alpha 两个转向电机的角度
+     * @return Eigen::Vector3d 整体机器人的vx vy w
+     */
+    Eigen::Vector3d agv_turn_wheel::Steer_Wheel_forward(Eigen::Vector2d Wheel_Drive_Omega,
+                                    Eigen::Vector2d Wheel_Steer_Omega,
+                                    Eigen::Vector2d Wheel_Steer_Alpha)
+    {   
+        double Vx,Vy,Omega;
+        double R=R_;
+        double B=B_;
+        double Alpha_1 = Wheel_Steer_Alpha[0];
+        double Alpha_2 = Wheel_Steer_Alpha[1];
+        double L=L_;
+        double Phi = Phi_;
+        double Drive_Omega_1 = Wheel_Drive_Omega[0];
+        double Drive_Omega_2 = Wheel_Drive_Omega[1];
+        double Steer_Omega_1 = Wheel_Steer_Omega[0];
+        double Steer_Omega_2 = Wheel_Steer_Omega[1];
+
+
+
+
+
+        Vx    = ((R*(B*cos(Alpha_1)+L*sin(Phi))*(Drive_Omega_1*sin(Alpha_1)+Drive_Omega_2*sin(Alpha_2)))-(R*Drive_Omega_1*sin(Alpha_1)*B*(cos(Alpha_1)+cos(Alpha_2)))+(B*(B*cos(Alpha_1)+L*sin(Phi))*(Steer_Omega_1*cos(Alpha_1)+Steer_Omega_2*cos(Alpha_2)))-(Steer_Omega_1*B*cos(Alpha_1)*B*(cos(Alpha_1)+cos(Alpha_2))))/(B*(cos(Alpha_2)-cos(Alpha_1))-2*L*sin(Phi));
+    
+        Omega = (2*Vx + R*(Drive_Omega_1*sin(Alpha_1)+Drive_Omega_2*sin(Alpha_2)) + B*(Steer_Omega_1*cos(Alpha_1)+Steer_Omega_2*cos(Alpha_2)))/(B*(cos(Alpha_1)+cos(Alpha_2)));
+	
+	    Vy    =  R*Drive_Omega_1*cos(Alpha_1)+Omega*(B*sin(Alpha_1)-L*cos(Phi))-Steer_Omega_1*B*sin(Alpha_1);
+
+        Eigen::Vector3d vxyw;
+        vxyw<< Vx,Vy,Omega;
+        return vxyw;
+    }
+
+    /**
+     * @brief 更新当前参数
+     * 
+     * @param Wheel_Drive_Omega 
+     * @param Wheel_Steer_Omega 
+     * @param Wheel_Steer_Alpha 
+     */
+    void agv_turn_wheel::update(Eigen::Vector2d Wheel_Drive_Omega,
+                            Eigen::Vector2d Wheel_Steer_Omega,
+                            Eigen::Vector2d Wheel_Steer_Alpha,
+                            const ros::Duration& period)
+    {
+        Wheel_Drive_Omega_=Wheel_Drive_Omega;
+        Wheel_Steer_Omega_=Wheel_Steer_Omega;
+        Wheel_Steer_Alpha_=Wheel_Steer_Alpha;
+        
+        Vxyw_now_=Steer_Wheel_forward(Wheel_Drive_Omega_,Wheel_Steer_Omega_,Wheel_Steer_Alpha_);
+        this->period_=period;
+        odom_updata();
+
+    }
+
+    /**
+     * @brief 使用内部参数更新里程计
+     * 
+     */
+    void agv_turn_wheel::odom_updata()
+    {
+        Eigen::Matrix3d A;
+        A<<cos(odom_(2)),-sin(odom_(2)),0,
+            sin(odom_(2)),cos(odom_(2)),0,
+            0,0,1;
+        odom_=odom_+A*Vxyw_now_*period_.toSec();
+        
+    }
+
+    /**
+     * @brief 
+     * 
+     * @param odom 要发布的odom话题
+     * @param odom_trans 要发布的tf变换
+     * @param time_now 当前的时间
+     * @param frame_id 里程计frame名称
+     * @param robot_frame_id 机器人变换后的frame名称
+     */
+    void agv_turn_wheel::tf_odom_trans(nav_msgs::Odometry &odom,
+                    geometry_msgs::TransformStamped &odom_trans,
+                    ros::Time time_now,
+                    std::string frame_id,
+                    std::string robot_frame_id)
+    {
+        odom_trans.header.stamp = time_now;
+        odom_trans.header.frame_id = frame_id;
+        odom_trans.child_frame_id = robot_frame_id;
+
+        odom_trans.transform.translation.x = this->odom_(0);
+        odom_trans.transform.translation.y = this->odom_(1);
+        odom_trans.transform.translation.z = 0;
+
+
+        geometry_msgs::Quaternion odom_quat = tf::createQuaternionMsgFromYaw(this->odom_(2));//转化成四元数
+        odom_trans.transform.rotation = odom_quat;
+
+
+        //
+
+
+        ;
     }
 
 
