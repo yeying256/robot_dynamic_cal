@@ -255,23 +255,45 @@ namespace xj_dy_ns
                     std::string frame_id,
                     std::string robot_frame_id)
     {
-        odom_trans.header.stamp = time_now;
-        odom_trans.header.frame_id = frame_id;
-        odom_trans.child_frame_id = robot_frame_id;
 
+        //tf信息加载
+
+        //当前系统时间戳
+        odom_trans.header.stamp = time_now;
+        //里程计坐标系
+        odom_trans.header.frame_id = frame_id;
+        //机器人坐标系
+        odom_trans.child_frame_id = robot_frame_id;
+        //当前tf变换的位置部分
         odom_trans.transform.translation.x = this->odom_(0);
         odom_trans.transform.translation.y = this->odom_(1);
         odom_trans.transform.translation.z = 0;
-
-
+        //当前tf变换的旋转部分
         geometry_msgs::Quaternion odom_quat = tf::createQuaternionMsgFromYaw(this->odom_(2));//转化成四元数
         odom_trans.transform.rotation = odom_quat;
 
+        //odom信息更新
+        //当前系统时间戳
+        odom.header.stamp = time_now;
+        //里程计坐标系
+        odom.header.frame_id = frame_id;
+        //机器人坐标系
+        odom.child_frame_id = robot_frame_id;
+        //设置位置部分
+        odom.pose.pose.position.x=odom_(0);
+        odom.pose.pose.position.y=odom_(1);
+        odom.pose.pose.position.z=0.0;
+        //设置姿态部分
+        odom.pose.pose.orientation = odom_quat;
+        //设置线速度
+        odom.twist.twist.angular.x = Vxyw_now_(0);
+        odom.twist.twist.angular.y = Vxyw_now_(1);
+        odom.twist.twist.angular.z = 0.0;
+        //设置角速度
+        odom.twist.twist.angular.x = 0.0;
+        odom.twist.twist.angular.y = 0.0;
+        odom.twist.twist.angular.z = Vxyw_now_(2);
 
-        //
-
-
-        ;
     }
 
 
