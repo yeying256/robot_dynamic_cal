@@ -286,14 +286,13 @@ namespace xj_dy_ns
         //设置姿态部分
         odom.pose.pose.orientation = odom_quat;
         //设置线速度
-        odom.twist.twist.angular.x = Vxyw_now_(0);
-        odom.twist.twist.angular.y = Vxyw_now_(1);
-        odom.twist.twist.angular.z = 0.0;
+        odom.twist.twist.linear.x = Vxyw_now_(0);
+        odom.twist.twist.linear.y = Vxyw_now_(1);
+        odom.twist.twist.linear.z = 0.0;
         //设置角速度
         odom.twist.twist.angular.x = 0.0;
         odom.twist.twist.angular.y = 0.0;
         odom.twist.twist.angular.z = Vxyw_now_(2);
-
     }
 
 
