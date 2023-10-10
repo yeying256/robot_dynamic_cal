@@ -17,7 +17,23 @@ namespace xj_dy_ns
     Eigen::Vector2d Wheel_Drive_Omega_,Wheel_Steer_Omega_,Wheel_Steer_Alpha_;
     Eigen::Vector3d odom_,Vxyw_now_;
     ros::Duration period_;
-        
+    int num_wheel_;
+
+
+    /*
+    Drive_Omega驱动轮角速度
+    Steer_Omega舵的角速度
+    Alpha轮子与x轴正方向夹角
+    vx，vy，omega 给定的指令速度
+    B 偏置距离
+    L 偏心距离
+    R 滚动半径
+    Phi 某一个轮子与车体坐标系原点连线相对于x轴正向的夹角
+    */
+   //小写的都是向量
+    Eigen::VectorXd b_,l_,r_,phi_,alpha_init_;//这是一个向量
+
+    
 
 //           lr: 1
 //   lf: 1
@@ -31,11 +47,18 @@ namespace xj_dy_ns
         agv_turn_wheel();
         agv_turn_wheel(double lr,double lf,double B,double R);
         bool init(double lr,double lf,double B,double R);
+        bool init(Eigen::VectorXd phi_,Eigen::VectorXd B,Eigen::VectorXd R,Eigen::VectorXd L,Eigen::VectorXd alpha_init);
+
+
+        void Inverse_Kinematics_new(Eigen::Ref<Eigen::VectorXd> Drive,
+	                        Eigen::Ref<Eigen::VectorXd> Turn,
+							Eigen::VectorXd Alpha,
+							Eigen::Vector3d Vxyw_cmd
+							);
 
 
         void Steer_Wheel_Kinematics(Eigen::Ref<Eigen::Vector2d> Wheel_Drive_Omega,
 	                        Eigen::Ref<Eigen::Vector2d> Wheel_Steer_Omega,
-
 							Eigen::Vector2d Wheel_Steer_Alpha,
 							Eigen::Vector3d Vxyw_cmd
 							);
