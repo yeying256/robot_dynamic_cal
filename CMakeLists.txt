@@ -139,6 +139,7 @@ add_library(robot_dynamic_cal
   src/mean_filter.cpp
   src/MPC_controller.cpp
   src/agv_turn_wheel.cpp
+  src/PID_controller.cpp
 )
 
 # add_dependencies(robot_dynamic_cal ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})

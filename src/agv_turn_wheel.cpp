@@ -141,10 +141,10 @@ namespace xj_dy_ns
             // std::cout<<"检测是否运行到此处3"<<std::endl;
 
             // Drive(0) = ((-sin(Alpha[0])*Vxyw_cmd(0)) + cos(Alpha[0])*Vxyw_cmd(1) + Vxyw_cmd(2)*    L*cos(Phi-Alpha[0]))  /R;
-            Drive[i] = ( cos(alpha_now[i])*Vxyw_cmd[0]  + sin(alpha_now[i])*Vxyw_cmd[1]  - Vxyw_cmd[2] *l_[i]*sin(phi_[i]-alpha_now[i]))/r_[i];
+            Drive[i] = ( cos(alpha_now[i])*Vxyw_cmd[0]  + sin(alpha_now[i])*Vxyw_cmd[1]  + Vxyw_cmd[2] *l_[i]*sin(alpha_now[i]-phi_[i]))/r_[i];
 
             // Drive[i] = ( cos(alpha_now[i])*Vxyw_cmd[0]  + sin(alpha_now[i])*Vxyw_cmd[1]  + Vxyw_cmd[2] *l_[i]*sin(phi_[i]-alpha_now[i]))/r_[i];
-            Turn[i] = ( Steer_Omega_Vx + Steer_Omega_Vy - abs(Vxyw_cmd[2])* ( b_[i]+l_[i]*cos(phi_[i]-alpha_now[i]) ) )/b_[i];
+            Turn[i] = ( Steer_Omega_Vx + Steer_Omega_Vy + abs(Vxyw_cmd[2])* ( b_[i]+l_[i]*cos(alpha_now[i]-phi_[i]) ) )/b_[i];
             // std::cout<<"检测是否运行到此处4"<<std::endl;
         // Turn(0)  = ( Steer_Omega_1_Vx+Steer_Omega_1_Vy + abs(Vxyw_cmd(2))*(B-(L*sin(Alpha[0]-Phi))))/B;
             // 
