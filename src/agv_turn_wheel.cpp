@@ -197,21 +197,21 @@ namespace xj_dy_ns
 
 
 
-        if(vector_alpha[0].dot(Vxyw_cmd.topRows(2))<0)
-        {
-            Steer_Omega_1_Vx=-Steer_Omega_1_Vx;
-            Steer_Omega_1_Vy=-Steer_Omega_1_Vy;
+        // if(vector_alpha[0].dot(Vxyw_cmd.topRows(2))<0)
+        // {
+        //     Steer_Omega_1_Vx=-Steer_Omega_1_Vx;
+        //     Steer_Omega_1_Vy=-Steer_Omega_1_Vy;
 
-        }
+        // }
 
-        if (vector_alpha[1].dot(Vxyw_cmd.topRows(2))<0)
-        {
-            Steer_Omega_2_Vx=-Steer_Omega_2_Vx;
-            Steer_Omega_2_Vy=-Steer_Omega_2_Vy;
-        }
+        // if (vector_alpha[1].dot(Vxyw_cmd.topRows(2))<0)
+        // {
+        //     Steer_Omega_2_Vx=-Steer_Omega_2_Vx;
+        //     Steer_Omega_2_Vy=-Steer_Omega_2_Vy;
+        // }
 
-        Turn(0)  = ( Steer_Omega_1_Vx+Steer_Omega_1_Vy + abs(Vxyw_cmd(2))*(B-(L*sin(Alpha[0]-Phi))))/B;
-        Turn(1)  = ( Steer_Omega_2_Vx+Steer_Omega_2_Vy + abs(Vxyw_cmd(2))*(B+(L*sin(Alpha[1]-Phi))))/B;
+        Turn(0)  = ( Steer_Omega_1_Vx+Steer_Omega_1_Vy + Vxyw_cmd(2)*(B-(L*sin(Alpha[0]-Phi))))/B;
+        Turn(1)  = ( Steer_Omega_2_Vx+Steer_Omega_2_Vy + Vxyw_cmd(2)*(B+(L*sin(Alpha[1]-Phi))))/B;
 
         
 
