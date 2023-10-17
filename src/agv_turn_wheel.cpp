@@ -133,18 +133,18 @@ namespace xj_dy_ns
             double Steer_Omega_Vy= cos(alpha_now[i])*Vxyw_cmd[1];//vy
             // std::cout<<"检测是否运行到此处2"<<std::endl;
         
-            if(Psi.dot(Vxyw_cmd.topRows(2))<0)//输入车体中心速度的向量，内积＜0则反转轮子自旋的角度。
-            {
-            Steer_Omega_Vx=-Steer_Omega_Vx;
-            Steer_Omega_Vy=-Steer_Omega_Vy;
-            }
+            // if(Psi.dot(Vxyw_cmd.topRows(2))<0)//输入车体中心速度的向量，内积＜0则反转轮子自旋的角度。
+            // {
+            // Steer_Omega_Vx=-Steer_Omega_Vx;
+            // Steer_Omega_Vy=-Steer_Omega_Vy;
+            // }
             // std::cout<<"检测是否运行到此处3"<<std::endl;
 
             // Drive(0) = ((-sin(Alpha[0])*Vxyw_cmd(0)) + cos(Alpha[0])*Vxyw_cmd(1) + Vxyw_cmd(2)*    L*cos(Phi-Alpha[0]))  /R;
             Drive[i] = ( cos(alpha_now[i])*Vxyw_cmd[0]  + sin(alpha_now[i])*Vxyw_cmd[1]  + Vxyw_cmd[2] *l_[i]*sin(alpha_now[i]-phi_[i]))/r_[i];
 
             // Drive[i] = ( cos(alpha_now[i])*Vxyw_cmd[0]  + sin(alpha_now[i])*Vxyw_cmd[1]  + Vxyw_cmd[2] *l_[i]*sin(phi_[i]-alpha_now[i]))/r_[i];
-            Turn[i] = ( Steer_Omega_Vx + Steer_Omega_Vy + abs(Vxyw_cmd[2])* ( b_[i]+l_[i]*cos(alpha_now[i]-phi_[i]) ) )/b_[i];
+            Turn[i] = ( Steer_Omega_Vx + Steer_Omega_Vy + Vxyw_cmd[2]* ( b_[i]+l_[i]*cos(alpha_now[i]-phi_[i]) ) )/b_[i];
             // std::cout<<"检测是否运行到此处4"<<std::endl;
         // Turn(0)  = ( Steer_Omega_1_Vx+Steer_Omega_1_Vy + abs(Vxyw_cmd(2))*(B-(L*sin(Alpha[0]-Phi))))/B;
             // 
