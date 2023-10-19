@@ -14,6 +14,8 @@ set(CMAKE_BUILD_TYPE Release)
 find_package(catkin REQUIRED COMPONENTS
   roscpp
   rospy
+  tf
+  
   std_msgs
 )
 
