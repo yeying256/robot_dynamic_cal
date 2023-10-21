@@ -14,8 +14,8 @@ namespace xj_dy_ns
     {
     private:
     double SinPhi_,CosPhi_,B_,L_,R_,Phi_;
-    Eigen::Vector2d Wheel_Drive_Omega_,Wheel_Steer_Omega_,Wheel_Steer_Alpha_;
-    Eigen::Vector3d odom_,Vxyw_now_;
+    Eigen::Vector2d Wheel_Drive_Omega_,Wheel_Steer_Omega_,Wheel_Steer_Alpha_,wheel_rad_last_,Alpha_last_;
+    Eigen::Vector3d odom_,Vxyw_now_,d_xyrz_; //d_xyrz_微分量
     ros::Duration period_;
     int num_wheel_;
 
@@ -73,7 +73,14 @@ namespace xj_dy_ns
                                     Eigen::Vector2d Wheel_Steer_Omega,
                                     Eigen::Vector2d Wheel_Steer_Alpha,
                                     const ros::Duration& period);
+
+        void update(Eigen::Vector2d wheel_rad_now,
+                                    Eigen::Vector2d Alpha);
+        // 使用反馈的速度来计算里程计
         void odom_updata();
+        // 使用反馈的位置微小位移来计算里程计
+        void d_odom_updata();
+
         ~agv_turn_wheel();
 
         void tf_odom_trans(nav_msgs::Odometry &odom,

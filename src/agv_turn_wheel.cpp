@@ -55,12 +55,12 @@ namespace xj_dy_ns
     bool agv_turn_wheel::init(double lr,double lf,double B,double R)
     {
         double l =sqrt(pow(lr,2)+pow(lr,2));
-        L_ =l;
+        L_ =0.41379;
         this->SinPhi_=lf/l;
         this->CosPhi_=lr/l;
         this->B_=B;
         this->R_=R;
-        Phi_=atan(lf/lr);
+        Phi_=0.75976;
         return true;
     }
 
@@ -285,9 +285,16 @@ namespace xj_dy_ns
 
 
 
-        Vx    = ((R*(B*cos(Alpha_1)+L*sin(Phi))*(Drive_Omega_1*sin(Alpha_1)+Drive_Omega_2*sin(Alpha_2)))-(R*Drive_Omega_1*sin(Alpha_1)*B*(cos(Alpha_1)+cos(Alpha_2)))+(B*(B*cos(Alpha_1)+L*sin(Phi))*(Steer_Omega_1*cos(Alpha_1)+Steer_Omega_2*cos(Alpha_2)))-(Steer_Omega_1*B*cos(Alpha_1)*B*(cos(Alpha_1)+cos(Alpha_2))))/(B*(cos(Alpha_2)-cos(Alpha_1))-2*L*sin(Phi));
+        Vx    = ((R*(B*cos(Alpha_1)+L*sin(Phi))*(Drive_Omega_1*sin(Alpha_1)+Drive_Omega_2*sin(Alpha_2)))
+        -(R*Drive_Omega_1*sin(Alpha_1)*B*(cos(Alpha_1)+cos(Alpha_2)))
+        +(B*(B*cos(Alpha_1)+L*sin(Phi))*(Steer_Omega_1*cos(Alpha_1)+Steer_Omega_2*cos(Alpha_2)))
+        -(Steer_Omega_1*B*cos(Alpha_1)*B*(cos(Alpha_1)+cos(Alpha_2)))
+                                                                    )/(B*(cos(Alpha_2)-cos(Alpha_1))-2*L*sin(Phi));
     
-        Omega = (2*Vx + R*(Drive_Omega_1*sin(Alpha_1)+Drive_Omega_2*sin(Alpha_2)) + B*(Steer_Omega_1*cos(Alpha_1)+Steer_Omega_2*cos(Alpha_2)))/(B*(cos(Alpha_1)+cos(Alpha_2)));
+        Omega = (2*Vx 
+        + R*(Drive_Omega_1*sin(Alpha_1)+Drive_Omega_2*sin(Alpha_2)) 
+        + B*(Steer_Omega_1*cos(Alpha_1)+Steer_Omega_2*cos(Alpha_2)))
+                                                                /(B*(cos(Alpha_1)+cos(Alpha_2)));
 	
 	    Vy    =  R*Drive_Omega_1*cos(Alpha_1)+Omega*(B*sin(Alpha_1)-L*cos(Phi))-Steer_Omega_1*B*sin(Alpha_1);
 
@@ -297,7 +304,7 @@ namespace xj_dy_ns
     }
 
     /**
-     * @brief 更新当前参数
+     * @brief 更新当前参数 使用速度量来更新odom
      * 
      * @param Wheel_Drive_Omega 
      * @param Wheel_Steer_Omega 
@@ -319,6 +326,24 @@ namespace xj_dy_ns
     }
 
     /**
+     * @brief 使用微分量来计算odom
+     * 
+     * @param wheel_rad_now
+     * @param Alpha
+    */
+    void agv_turn_wheel::update(Eigen::Vector2d wheel_rad_now,
+                                    Eigen::Vector2d Alpha_now)
+    {
+        // 计算微小位移量
+        Wheel_Steer_Alpha_ = Alpha_now;
+        d_xyrz_=Steer_Wheel_forward(wheel_rad_now - wheel_rad_last_,Alpha_now - Alpha_last_,Wheel_Steer_Alpha_);
+
+        d_odom_updata();
+        wheel_rad_last_ = wheel_rad_now;
+        Alpha_last_ = Alpha_now;
+    }
+
+    /**
      * @brief 使用内部参数更新里程计
      * 
      */
@@ -330,6 +355,19 @@ namespace xj_dy_ns
             0,0,1;
         odom_=odom_+A*Vxyw_now_*period_.toSec();
         
+    }
+
+    /**
+     * @brief 使用微小位移来计算里程计
+    */
+    void agv_turn_wheel::d_odom_updata()
+    {
+        Eigen::Matrix3d A;
+        A<<cos(odom_(2)),-sin(odom_(2)),0,
+            sin(odom_(2)),cos(odom_(2)),0,
+            0,0,1;
+        odom_=odom_+A*this->d_xyrz_;
+        // 加上微小位移
     }
 
     /**
@@ -355,7 +393,7 @@ namespace xj_dy_ns
         //里程计坐标系
         odom_trans.header.frame_id = frame_id;
         //机器人坐标系
-        odom_trans.child_frame_id = robot_frame_id;
+        odom_trans.child_frame_id = "roscontrol_basefootprint";
         //当前tf变换的位置部分
         odom_trans.transform.translation.x = this->odom_(0);
         odom_trans.transform.translation.y = this->odom_(1);
