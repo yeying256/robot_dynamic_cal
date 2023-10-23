@@ -303,6 +303,38 @@ namespace xj_dy_ns
         return vxyw;
     }
 
+
+    Eigen::Vector3d agv_turn_wheel::Forward_Kinematics2(Eigen::Vector2d Drive_Omega,
+                                    Eigen::Vector2d turn_Omega,
+                                    Eigen::Vector2d Alpha)//只适用于两个主动舵轮的正运动学，如果多于这个数，必须要重算。
+    {
+
+        // Vx,Vy,Omega,Drive_Omega_1,Drive_Omega_2,Steer_Omega_1,Steer_Omega_2,Alpha_1,Alpha_2,B1,B2,L1,L2,R1,R2,Phi_1,Phi_2
+        double L1=l_[0];
+        double L2 = l_[1];
+        double Phi_1 = this->phi_[0];
+        double Phi_2 = this->phi_[1];
+        double B1 = this->b_[0];
+        double B2 = this->b_[1];
+        double Alpha_1 = Alpha[0];
+        double Alpha_2 = Alpha[1];
+        double R1 = this->r_[0];
+        double R2 = this->r_[1];
+        double Drive_Omega_1 = Drive_Omega[0];
+        double Drive_Omega_2 = Drive_Omega[1];
+        double Steer_Omega_1 = turn_Omega[0];
+        double Steer_Omega_2 = turn_Omega[1];
+
+        double temp=(L1*sin(Phi_1) + B1*sin(Alpha_1)) / (L2*sin(Phi_2) + B2*sin(Alpha_2));//计算中间变量，减少运算量。
+        
+        double Vx=(R1*Drive_Omega_1*cos(Alpha_1) - Steer_Omega_1*B1*sin(Alpha_1) + temp*(Steer_Omega_2*B2*sin(Alpha_2) - R2*Drive_Omega_2*cos(Alpha_2)))/(1-temp);
+        double Omega=(Vx + Steer_Omega_2*B2*sin(Alpha_2) - R2*Drive_Omega_2*cos(Alpha_2))/(L2*sin(Phi_2) + B2*sin(Alpha_2));
+        double Vy=R1*Drive_Omega_1*sin(Alpha_1) - (Omega-Steer_Omega_1)*B1*cos(Alpha_1) - Omega*L1*cos(Phi_1);
+        Eigen::Vector3d xyw;
+        xyw<<Vx,Vy,Omega;
+        return xyw;
+    }
+
     /**
      * @brief 更新当前参数 使用速度量来更新odom
      * 
@@ -330,13 +362,16 @@ namespace xj_dy_ns
      * 
      * @param wheel_rad_now
      * @param Alpha
+     * @param period 时间
     */
     void agv_turn_wheel::update(Eigen::Vector2d wheel_rad_now,
-                                    Eigen::Vector2d Alpha_now)
+                                    Eigen::Vector2d Alpha_now,
+                                    const ros::Duration& period)
     {
         // 计算微小位移量
-        Wheel_Steer_Alpha_ = Alpha_now;
-        d_xyrz_=Steer_Wheel_forward(wheel_rad_now - wheel_rad_last_,Alpha_now - Alpha_last_,Wheel_Steer_Alpha_);
+
+        d_xyrz_=Forward_Kinematics2(wheel_rad_now - wheel_rad_last_,Alpha_now - Alpha_last_,Alpha_now);
+        this->Vxyw_now_ = d_xyrz_/period.toSec();
 
         d_odom_updata();
         wheel_rad_last_ = wheel_rad_now;

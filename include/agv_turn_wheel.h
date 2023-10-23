@@ -75,7 +75,8 @@ namespace xj_dy_ns
                                     const ros::Duration& period);
 
         void update(Eigen::Vector2d wheel_rad_now,
-                                    Eigen::Vector2d Alpha);
+                                    Eigen::Vector2d Alpha,
+                                    const ros::Duration& period);
         // 使用反馈的速度来计算里程计
         void odom_updata();
         // 使用反馈的位置微小位移来计算里程计
@@ -88,6 +89,9 @@ namespace xj_dy_ns
                             ros::Time time_now,
                             std::string frame_id,
                             std::string robot_frame_id);
+        Eigen::Vector3d Forward_Kinematics2(Eigen::Vector2d Drive_Omega,
+                                    Eigen::Vector2d turn_Omega,
+                                    Eigen::Vector2d Alpha);//只适用于两个主动舵轮的正运动学，如果多于这个数，必须要重算。
         
     };
 
