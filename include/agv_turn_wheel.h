@@ -55,6 +55,11 @@ namespace xj_dy_ns
 							Eigen::VectorXd Alpha,
 							Eigen::Vector3d Vxyw_cmd
 							);
+        void Inverse_Kinematics_new2(Eigen::Ref<Eigen::VectorXd> Drive,
+	                        Eigen::Ref<Eigen::VectorXd> Turn,
+							Eigen::VectorXd Alpha,
+							Eigen::Vector3d Vxyw_cmd
+							);
 
 
         void Steer_Wheel_Kinematics(Eigen::Ref<Eigen::Vector2d> Wheel_Drive_Omega,

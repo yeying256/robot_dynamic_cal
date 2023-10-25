@@ -153,6 +153,67 @@ namespace xj_dy_ns
         
     }
 
+   /**
+    * @brief 
+    * 
+    * @param Drive 行走电机的指令速度
+    * @param Turn 转向轮子的指令速度
+    * @param Alpha 当前相对初始位置的转向轮子的角位置
+    * @param Vxyw_cmd 指令速度
+    */
+    void agv_turn_wheel::Inverse_Kinematics_new2(Eigen::Ref<Eigen::VectorXd> Drive,
+	                        Eigen::Ref<Eigen::VectorXd> Turn,
+							Eigen::VectorXd Alpha,
+							Eigen::Vector3d Vxyw_cmd
+							)
+    {
+        if (Alpha.size()!=alpha_init_.size())
+        {
+            std::cout<<"逆向运动学中Alpha和alpha_init_长度不相等"<<std::endl;
+            return;
+        }
+        
+        Eigen::VectorXd alpha_now = Alpha + alpha_init_;
+        // std::cout<<"检测是否运行到此处1"<<std::endl;
+
+        for (int i = 0; i < this->num_wheel_; i++)
+        {
+            Eigen::Vector2d Psi,cmd_dirction;
+            Psi<<cos(alpha_now[i]),sin(alpha_now[i]);//向量，轮子当前所处的角度
+            
+            cmd_dirction[0] = Vxyw_cmd[0] - Vxyw_cmd[2]* sin(phi_[i]);
+            cmd_dirction[1] = Vxyw_cmd[1] + Vxyw_cmd[2]* cos(phi_[i]);
+            
+
+            double Steer_Omega_Vx=-sin(alpha_now[i])*Vxyw_cmd[0];//vx
+            double Steer_Omega_Vy= cos(alpha_now[i])*Vxyw_cmd[1];//vy
+            // std::cout<<"检测是否运行到此处2"<<std::endl;
+        
+            if(Psi.dot(cmd_dirction)<0)//输入车体中心速度的向量，内积＜0则反转轮子自旋的角度。
+            {
+                alpha_now[i]+=M_PI;
+                Drive[i] = -( cos(alpha_now[i])*Vxyw_cmd[0]  + sin(alpha_now[i])*Vxyw_cmd[1]  + Vxyw_cmd[2] *l_[i]*sin(alpha_now[i]-phi_[i]))/r_[i];
+
+            }
+            else
+            {
+                Drive[i] = ( cos(alpha_now[i])*Vxyw_cmd[0]  + sin(alpha_now[i])*Vxyw_cmd[1]  + Vxyw_cmd[2] *l_[i]*sin(alpha_now[i]-phi_[i]))/r_[i];
+
+            }
+            // std::cout<<"检测是否运行到此处3"<<std::endl;
+
+            // Drive(0) = ((-sin(Alpha[0])*Vxyw_cmd(0)) + cos(Alpha[0])*Vxyw_cmd(1) + Vxyw_cmd(2)*    L*cos(Phi-Alpha[0]))  /R;
+
+            // Drive[i] = ( cos(alpha_now[i])*Vxyw_cmd[0]  + sin(alpha_now[i])*Vxyw_cmd[1]  + Vxyw_cmd[2] *l_[i]*sin(phi_[i]-alpha_now[i]))/r_[i];
+            Turn[i] = ( -sin(alpha_now[i])*Vxyw_cmd[0] + cos(alpha_now[i])*Vxyw_cmd[1] + Vxyw_cmd[2]* ( b_[i]+l_[i]*cos(alpha_now[i]-phi_[i]) ) )/b_[i];
+            // std::cout<<"检测是否运行到此处4"<<std::endl;
+        // Turn(0)  = ( Steer_Omega_1_Vx+Steer_Omega_1_Vy + abs(Vxyw_cmd(2))*(B-(L*sin(Alpha[0]-Phi))))/B;
+            // 
+
+        }
+        
+    }
+
     /**
      * @brief 双舵轮机器人移动底盘逆向运动学
      * 
