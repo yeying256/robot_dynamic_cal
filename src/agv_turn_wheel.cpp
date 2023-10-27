@@ -412,6 +412,14 @@ namespace xj_dy_ns
     }
 
 
+    /**
+     * @brief 正向运动学
+     * 
+     * @param Wheel_Drive_Omega 两个驱动轮的角速度 
+     * @param Wheel_Steer_Omega 两个转向电机的角速度
+     * @param Wheel_Steer_Alpha 两个转向电机的角度
+     * @return Eigen::Vector3d 整体机器人的vx vy w
+     */
     Eigen::Vector3d agv_turn_wheel::Forward_Kinematics2(Eigen::Vector2d Drive_Omega,
                                     Eigen::Vector2d turn_Omega,
                                     Eigen::Vector2d Alpha)//只适用于两个主动舵轮的正运动学，如果多于这个数，必须要重算。
@@ -430,8 +438,11 @@ namespace xj_dy_ns
         double R2 = this->r_[1];
         double Drive_Omega_1 = Drive_Omega[0];
         double Drive_Omega_2 = Drive_Omega[1];
-        double Steer_Omega_1 = turn_Omega[0];
-        double Steer_Omega_2 = turn_Omega[1];
+        // double Steer_Omega_1 = turn_Omega[0];
+        // double Steer_Omega_2 = turn_Omega[1];
+
+        double Steer_Omega_1 = -turn_Omega[0];
+        double Steer_Omega_2 = -turn_Omega[1];
 
         double temp=(L1*sin(Phi_1) + B1*sin(Alpha_1)) / (L2*sin(Phi_2) + B2*sin(Alpha_2));//计算中间变量，减少运算量。
         
