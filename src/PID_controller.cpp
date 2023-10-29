@@ -32,7 +32,7 @@ namespace xj_dy_ns
         double k = m_p*err + m_i*m_i_err + m_d*m_d_err;
         m_last_err = err;
         // if(fabs(k) < 0.0001) k = fabs(k) / k * 0.01;
-        if(fabs(k) > 0.8 ) k = fabs(k) / k * 0.8;
+        if(fabs(k) > 0.1 ) k = fabs(k) / k * 0.1;
         return k;
     }
 
