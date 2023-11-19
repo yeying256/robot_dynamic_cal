@@ -126,8 +126,9 @@ catkin_package(
 # src/robot_dynamic.cpp)
 set(CMAKE_BUILD_TYPE Release)
 include_directories(
-include
+  include
   ${catkin_INCLUDE_DIRS}
+  /usr/include/eigen3
 )
 
 ## Declare a C++ library
