@@ -75,7 +75,7 @@ namespace xj_dy_ns
         Eigen::Matrix<double,6,1> pow_t_;
 
         x_now.setZero(this->val_num_);
-        std::cout<<"state_="<<state_<<std::endl;
+        // std::cout<<"state_="<<state_<<std::endl;
 
         if (!this->flag_cal)
         {
