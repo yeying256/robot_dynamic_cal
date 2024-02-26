@@ -23,6 +23,8 @@ namespace xj_dy_ns
         void init(double p, double i, double d,double max_output);
         ~PID_controller();
         PID_controller(double p, double i, double d);
+        PID_controller(double p, double i, double d ,double max_output);
+
         double PID(double err);
     };
     

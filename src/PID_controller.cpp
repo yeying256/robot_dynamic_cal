@@ -34,6 +34,14 @@ namespace xj_dy_ns
         max_output_ = 0.1;
     }
 
+    PID_controller::PID_controller(double p, double i, double d ,double max_output):m_p(p), m_i(i), m_d(d),max_output_(max_output)
+    {
+        m_last_err = 0;
+        m_i_err = 0;
+        m_d_err = 0;
+    }
+
+
     /**
      * @brief 加入了maxoutput的初始化函数
      * 
