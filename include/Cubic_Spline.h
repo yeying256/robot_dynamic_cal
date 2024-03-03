@@ -41,6 +41,20 @@ namespace xj_dy_ns
 
         // 构造函数
         Cubic_Spline(/* args */);
+
+        /**
+         * @brief 初始化三次样条插值
+         * 
+         * @param point 插值点，每一行代表一组数据（x0,x1……xn），每一列代表这组数据的一个点（xk，yk……）
+         * @param h 每一段时间间隔
+         * @param bound_type 边界条件类型，0是加速度 1 是速度 2是周期
+         * @param bound 边界条件，每一行是不同组数据的边界条件，第一列是初始的边界条件，第二列是结束的边界条件
+         */
+        Cubic_Spline(Eigen::MatrixXd point,
+                Eigen::VectorXd h,
+                BOUND_type bound_type,
+                Eigen::Matrix<double,2,Eigen::Dynamic> bound);
+
         ~Cubic_Spline();
 
         /**
@@ -62,7 +76,7 @@ namespace xj_dy_ns
          * @param t 输入时间
          * @return Eigen::ArrayXd 
          */
-        Eigen::ArrayXd cal(double t);
+        Eigen::VectorXd cal(double t);
         
 
 

@@ -42,6 +42,9 @@ namespace xj_dy_ns
         {
             std::cout<<"Cubic_Spline:: error!! number of dof of bound is error"<<std::endl;
             return;
+        }else
+        {
+            bound_ = bound;
         }
 
         // 计算d1到dn-1 这里的下标比较混乱，小心一点
@@ -90,8 +93,8 @@ namespace xj_dy_ns
                }
 
                 // 计算d0和 dn
-                d_.row(0) = 6/h_(0)*((point_.row(1)-point_.row(0))/h_(0) - bound_.row(0));
-                d_.row(num_point_-1) = 6/h_(num_time_-1) 
+                d_.row(0) = 6.0/h_(0)*((point_.row(1)-point_.row(0))/h_(0) - bound_.row(0));
+                d_.row(num_point_-1) = 6.0/h_(num_time_-1) 
                     * (bound_.row(1) - (point_.row(num_point_-1)- point_.row(num_point_-2))/h_(num_time_-1));
 
                 // 对于稠密矩阵，使用常规的求解器 求解
@@ -109,10 +112,10 @@ namespace xj_dy_ns
         ;
     }
 
-    Eigen::ArrayXd Cubic_Spline::cal(double t)
+    Eigen::VectorXd Cubic_Spline::cal(double t)
     {
         // 区间左侧时间和区间右侧时间
-        double t_l,t_r = 0.0;
+        double t_l = 0.0,t_r = 0.0;
         
         Eigen::ArrayXd out;
         out.resize(Dof_);
@@ -129,14 +132,23 @@ namespace xj_dy_ns
             }
             t_l+=this->h_(i);
         }
-
+            // 检查过了
             Eigen::MatrixXd result = pow((t_r-t),3)/(6.0*h_(index_l))*this->M_.row(index_l) 
             +pow((t-t_l),3)/(6.0*h_(index_l))*M_.row(index_l+1)
+            // +(point_.row(index_l)-pow(h_(index_l),2)/6.0*M_.row(index_l))
             +( point_.row(index_l)- pow(h_(index_l),2)/6.0 *M_.row(index_l) )*(t_r - t)/h_(index_l)
             +(point_.row(index_l+1)-pow(h_(index_l),2)/6.0 *M_.row(index_l+1)) * (t - t_l)/h_(index_l); 
+            // std::cout<<"t_l = "<<t_l<<",,,t_r = "<<t_r<<std::endl ;
         
-            out = result.array();
-        return out;
+        return result.transpose();
+    }
+
+    Cubic_Spline::Cubic_Spline(Eigen::MatrixXd point,
+        Eigen::VectorXd h,
+        BOUND_type bound_type,
+        Eigen::Matrix<double,2,Eigen::Dynamic> bound)
+    {
+        init(point,h,bound_type,bound);
     }
 
 
