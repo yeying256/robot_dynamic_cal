@@ -98,7 +98,8 @@ namespace xj_dy_ns
                     * (bound_.row(1) - (point_.row(num_point_-1)- point_.row(num_point_-2))/h_(num_time_-1));
 
                 // 对于稠密矩阵，使用常规的求解器 求解
-                Eigen::MatrixXd M_ = A.bdcSvd(Eigen::ComputeThinU | Eigen::ComputeThinV).solve(d_);
+                M_ = A.bdcSvd(Eigen::ComputeThinU | Eigen::ComputeThinV).solve(d_);
+                
                
             }
             break;
