@@ -9,6 +9,7 @@ namespace xj_dy_ns
     private:
         // 每个时间段 比如0.1 0.1 0.1…… 0.1
         Eigen::VectorXd h_;
+        double time_all_;
 
         // 数据的自由度，有几组数据需要差值
         int Dof_,num_point_,num_time_;
@@ -77,6 +78,15 @@ namespace xj_dy_ns
          * @return Eigen::ArrayXd 
          */
         Eigen::VectorXd cal(double t);
+        
+        /**
+         * @brief 输入一个时间序列，返回一个每一行都是一个坐标向量，每一列都是不同的点
+         * 
+         * @param t vector类型的时间序列
+         * @return Eigen::MatrixXd 
+         */
+        Eigen::MatrixXd cal(Eigen::VectorXd t);
+
         
 
 

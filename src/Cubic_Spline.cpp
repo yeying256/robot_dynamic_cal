@@ -32,6 +32,12 @@ namespace xj_dy_ns
         if (num_time_ == h.size())
         {
             this->h_ = h;
+            time_all_ =0.0;
+            for (size_t i = 0; i < h_.size(); i++)
+            {
+                time_all_+=h_(i);
+            }
+            
         }else
         {
             std::cout<<"Cubic_Spline:: error!! number of time is error"<<std::endl;
@@ -123,16 +129,34 @@ namespace xj_dy_ns
 
         // 区间左侧点标号
         int index_l = 0;
-        for (int i = 0; i < num_time_; i++)
+        // 判断是否在区间中
+        if (t>=time_all_)
         {
-            t_r+=this->h_(i);
-            if (t<t_r)
-            {
-                index_l = i;
-                break;
-            }
-            t_l+=this->h_(i);
+            // t_r = time_all_;
+            // t_l = time_all_ - h_(h_.size()-1);
+            return this->point_.bottomRows(1).transpose();
         }
+        else if (t<=0)
+        {
+            return this->point_.row(0).transpose();
+
+        }
+        else
+        {
+            for (int i = 0; i < num_time_; i++)
+            {
+                t_r+=this->h_(i);
+                if (t<t_r)
+                {
+                    index_l = i;
+                    break;
+                }
+                t_l+=this->h_(i);
+            }
+        }
+        
+        
+        
             // 检查过了
             Eigen::MatrixXd result = pow((t_r-t),3)/(6.0*h_(index_l))*this->M_.row(index_l) 
             +pow((t-t_l),3)/(6.0*h_(index_l))*M_.row(index_l+1)
@@ -151,6 +175,23 @@ namespace xj_dy_ns
     {
         init(point,h,bound_type,bound);
     }
+
+    Eigen::MatrixXd Cubic_Spline::cal(Eigen::VectorXd t)
+    {
+        Eigen::MatrixXd result;
+        // std::cout<<"Dof_ = "<<Dof_<<std::endl;
+        result.resize(t.size(),this->Dof_);
+        // std::cout<<"result.rows() = "<<result.rows()<<std::endl;
+        for (int i = 0; i < result.rows(); i++)
+        {
+            result.row(i) = cal(t(i)).transpose();
+            // std::cout<< "t "<<i<<"=" <<t(i)<<std::endl<<"cal(t(i)) = "<<cal(t(i))<<std::endl;
+        }
+        return result;
+    }
+
+
+
 
 
 }
