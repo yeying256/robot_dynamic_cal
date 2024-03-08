@@ -4,8 +4,8 @@ project(robot_dynamic_cal)
 ## Compile as C++11, supported in ROS Kinetic and newer
 add_compile_options(-std=c++11)
 # SET(CMAKE_CXX_FLAGS_DEBUG "$ENV{CXXFLAGS} -O1 -Wall -g -ggdb")
-set(CMAKE_BUILD_TYPE DEBUG)
-# set(CMAKE_BUILD_TYPE Release)
+# set(CMAKE_BUILD_TYPE DEBUG)
+set(CMAKE_BUILD_TYPE Release)
 
 
 ## Find catkin macros and libraries
